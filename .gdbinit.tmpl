@@ -13,8 +13,8 @@ define hook-stop
         set architecture i8086
         set $rm=1
     end
-    printf "[%4x:%4x] ", $cs, $eip
-    x/i $cs*16+$eip
+    printf "[%4x:%4x] ", $cs, (unsigned short)$pc
+    x/i $pc
   end
 end
 
