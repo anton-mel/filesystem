@@ -7,6 +7,10 @@
 #define VM_USERLO_PI (VM_USERLO / PAGESIZE)
 #define VM_USERHI_PI (VM_USERHI / PAGESIZE)
 
+// Memoization: Remember the last allocated page
+// since stack is growing downward consequently.
+static unsigned int memoized_index = VM_USERLO_PI;
+
 /**
  * Allocate a physical page.
  *
@@ -23,7 +27,25 @@
  */
 unsigned int palloc()
 {
-    // TODO
+    unsigned int nps = get_nps();
+    for (unsigned int i = memoized_index; i < nps; i++) {
+        if (at_is_norm(i) && !at_is_allocated(i)) {
+            at_set_allocated(i, 1);
+            memoized_index = i + 1;
+            return i;
+        }
+    }
+
+    // Optional: Wrap around if no page was found in the current search
+    // since the next function can potentially break consequent order
+    for (unsigned int i = VM_USERLO_PI; i < memoized_index; i++) {
+        if (at_is_norm(i) && !at_is_allocated(i)) {
+            at_set_allocated(i, 1);
+            memoized_index = i + 1;
+            return i;
+        }
+    }
+
     return 0;
 }
 
@@ -37,5 +59,10 @@ unsigned int palloc()
  */
 void pfree(unsigned int pfree_index)
 {
-    // TODO
+    at_set_allocated(pfree_index, 0);
+    // Optional: Reset memoized index to 
+    // avoid skipping freed pages?
+    if (pfree_index < memoized_index) {
+        memoized_index = pfree_index;
+    }
 }

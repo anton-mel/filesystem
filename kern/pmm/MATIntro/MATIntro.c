@@ -47,9 +47,9 @@ void set_nps(unsigned int nps)
  * then returns 1, otherwise returns 0.
  */
 unsigned int at_is_norm(unsigned int page_index)
-{
+{   
     // TODO
-    return 0;
+    return (AT[page_index].perm > 1) ? 1 : 0;
 }
 
 /**
@@ -60,6 +60,8 @@ unsigned int at_is_norm(unsigned int page_index)
 void at_set_perm(unsigned int page_index, unsigned int perm)
 {
     // TODO
+    AT[page_index].perm = perm;
+    AT[page_index].allocated = 0;
 }
 
 /**
@@ -69,7 +71,7 @@ void at_set_perm(unsigned int page_index, unsigned int perm)
 unsigned int at_is_allocated(unsigned int page_index)
 {
     // TODO
-    return 0;
+    return (AT[page_index].allocated > 0) ? 1 : 0;
 }
 
 /**
@@ -77,6 +79,7 @@ unsigned int at_is_allocated(unsigned int page_index)
  * Set the flag of the page with given index to the given value.
  */
 void at_set_allocated(unsigned int page_index, unsigned int allocated)
-{
+{   
     // TODO
+    AT[page_index].allocated = allocated;
 }

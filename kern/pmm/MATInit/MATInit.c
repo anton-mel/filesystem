@@ -19,11 +19,18 @@
  */
 void pmem_init(unsigned int mbi_addr)
 {
-    unsigned int nps;
+    /// @anton-mel
+    // TLDR. Physical Memory Map table provides a description of the physical memory 
+    // layout of a machine, as detected by the bootloader (or BIOS). It tells the 
+    // kernel which regions of memory are available for use, which are reserved, 
+    // and which are allocated for special purposes (e.g., BIOS data, devices, etc.).
+    // This is NOT related to Virtual Memory, but still part of the Memory Management.
 
-    // TODO: Define your local variables here.
+    unsigned int nps = 0;                   // Total number of physical pages
+    unsigned int highest_addr = 0;          // Highest address available for PM
+    unsigned int num_ranges = get_size();   // Number of memory map entries
 
-    // Calls the lower layer initialization primitive.
+    // Calls the lower layer initialization primitive e.g. device drivers or interrupts.
     // The parameter mbi_addr should not be used in the further code.
     devinit(mbi_addr);
 
@@ -33,9 +40,19 @@ void pmem_init(unsigned int mbi_addr)
      * Hint: Think of it as the highest address in the ranges of the memory map table,
      *       divided by the page size.
      */
-    // TODO
 
-    set_nps(nps);  // Setting the value computed above to NUM_PAGES.
+    // Find the highest address available for physical memory
+    for (unsigned int i = 0; i < num_ranges; i++) {
+        if (is_usable(i)) { // Only consider usable ranges, otherwise cannot allocate
+            unsigned int range_end = get_mms(i) + get_mml(i);
+            if (range_end > highest_addr) {
+                highest_addr = range_end;
+            }
+        }
+    }
+
+    nps = highest_addr / PAGESIZE;
+    set_nps(nps);   // Setting the value computed above to NUM_PAGES.
 
     /**
      * Initialization of the physical allocation table (AT).
@@ -60,5 +77,53 @@ void pmem_init(unsigned int mbi_addr)
      *    the addresses are in a usable range. Currently, we do not utilize partial pages,
      *    so in that case, you should consider those pages as unavailable.
      */
-    // TODO
+    
+    for (unsigned int i = 0; i < nps; i++) {
+        if (i < VM_USERLO_PI || i >= VM_USERHI_PI) {
+            // Kernel reserved pages
+            at_set_perm(i, 1);
+        } else {
+
+            /// @anton-mel
+            // Physical Memory Layout
+            // ---------------------------------------------------------
+            // | Reserved | Usable Range 1 | Reserved | Usable Range 2 |
+            // ---------------------------------------------------------
+            //         ^                ^          ^                ^
+            //     range_start         range_end    range_start     range_end
+            //
+            // Page to Check
+            // -----------------
+            // |    Page i     |
+            // -----------------
+            // ^                ^
+            // page_start      page_end
+            //
+            // Condition:
+            // - If `page_start >= range_start` AND `page_end <= range_end`,
+            // then the page is fully within the usable range.
+
+            int is_page_usable = 0;
+            for (unsigned int j = 0; j < num_ranges; j++) {
+                if (is_usable(j)) { // For each memory range to place a table
+                    unsigned int range_start = get_mms(j);
+                    unsigned int range_end = range_start + get_mml(j);
+                    unsigned int page_start = i * PAGESIZE;
+                    unsigned int page_end = page_start + PAGESIZE;
+
+                    // Check if the entire page falls within the usable range
+                    if (page_start >= range_start && page_end <= range_end) {
+                        is_page_usable = 1;
+                        break; // Success
+                    }
+                }
+            }
+
+            if (is_page_usable) {
+                at_set_perm(i, 2); // Normal page
+            } else {
+                at_set_perm(i, 0); // Unusable page
+            }
+        }
+    }
 }
