@@ -7,6 +7,7 @@ Debug with gdb: make qemu-gdb / make qemu-nox-gdb <br>
                 (in another terminal) gdb
 
 # Team: Anton Melnychuk and Oliver Li
+Everyone contributed equally to the assignment.
 
 
 ## Question A
