@@ -22,7 +22,7 @@ $(USER_GENDIR)/user_procs.h: $(USER_MAKEFILES)
 	@echo + py[gen/user_procs.h] $@
 	$(V)mkdir -p $(OBJDIR)/gen
 	$(V)mkdir -p $(EXTERNAL_BINFILES_DIR)
-	$(V)python misc/build_user_proc_table.py $(EXTERNAL_BINFILES_FULL) \
+	$(V)python3 misc/build_user_proc_table.py $(EXTERNAL_BINFILES_FULL) \
 	$(USER_BINFILES) > $(USER_GENDIR)/user_procs.h
 
 $(USER_GENDIR)/user_procs.inc: $(USER_MAKEFILES)
