@@ -19,9 +19,8 @@ static struct SContainer CONTAINER[NUM_IDS];
  */
 void container_init(unsigned int mbi_addr)
 {
-    unsigned int real_quota;
     // TODO: define your local variables here.
-
+    unsigned int real_quota;
     pmem_init(mbi_addr);
     real_quota = 0;
 
@@ -30,6 +29,12 @@ void container_init(unsigned int mbi_addr)
      * It should be the number of the unallocated pages with the normal permission
      * in the physical memory allocation table.
      */
+
+    for (unsigned int i = 0; i < get_nps(); i++) {
+        if (!at_is_allocated(i) && at_is_norm(i)) {
+            real_quota++;
+        }
+    }
 
     KERN_DEBUG("\nreal quota: %d\n\n", real_quota);
 
@@ -43,37 +48,32 @@ void container_init(unsigned int mbi_addr)
 // Get the id of parent process of process # [id].
 unsigned int container_get_parent(unsigned int id)
 {
-    // TODO
-    return 0;
+    return CONTAINER[id].parent;
 }
 
 // Get the number of children of process # [id].
 unsigned int container_get_nchildren(unsigned int id)
 {
-    // TODO
-    return 0;
+    return CONTAINER[id].nchildren;
 }
 
 // Get the maximum memory quota of process # [id].
 unsigned int container_get_quota(unsigned int id)
 {
-    // TODO
-    return 0;
+    return CONTAINER[id].quota;
 }
 
 // Get the current memory usage of process # [id].
 unsigned int container_get_usage(unsigned int id)
 {
-    // TODO
-    return 0;
+    return CONTAINER[id].usage;
 }
 
 // Determines whether the process # [id] can consume an extra
 // [n] pages of memory. If so, returns 1, otherwise, returns 0.
 unsigned int container_can_consume(unsigned int id, unsigned int n)
 {
-    // TODO
-    return 0;
+    return (CONTAINER[id].quota - CONTAINER[id].usage >= n) ? 1 : 0;
 }
 
 /**
@@ -97,6 +97,15 @@ unsigned int container_split(unsigned int id, unsigned int quota)
      * TODO: Update the container structure of both parent and child process appropriately.
      */
 
+    CONTAINER[child].quota = quota;
+    CONTAINER[child].usage = 0;
+    CONTAINER[child].parent = id;
+    CONTAINER[child].nchildren = 0;
+    CONTAINER[child].used = 1;
+    
+    CONTAINER[id].nchildren++;
+    CONTAINER[id].usage += quota;
+
     return child;
 }
 
@@ -110,11 +119,23 @@ unsigned int container_alloc(unsigned int id)
     /*
      * TODO: Implement the function here.
      */
-    return 0;
+    if (!container_can_consume(id, 1)) {
+        return 0;
+    }
+
+    unsigned int page = palloc();
+    if (page == 0) {
+        return 0;
+    }
+    
+    CONTAINER[id].usage++;
+    return page;
 }
 
 // Frees the physical page and reduces the usage by 1.
 void container_free(unsigned int id, unsigned int page_index)
 {
     // TODO
+    pfree(page_index);
+    CONTAINER[id].usage--;
 }
