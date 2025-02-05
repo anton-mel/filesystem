@@ -53,7 +53,7 @@ unsigned int get_pdir_entry(unsigned int proc_index, unsigned int pde_index)
 void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int page_index)
 {
-    // TODO (check here)
+    // look at the INTEL manual for the general design. [Format of a Linear Address]
     PDirPool[proc_index][pde_index] = (unsigned int *)((page_index << 12) | PT_PERM_PTU);
 }
 
@@ -63,8 +63,8 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
 // This will be used to map a page directory entry to an identity page table.
 void set_pdir_entry_identity(unsigned int proc_index, unsigned int pde_index)
 {
-    // TODO (check here)
-    PDirPool[proc_index][pde_index] = (unsigned int *)((unsigned int)IDPTbl[pde_index] | PT_PERM_PTU);
+    // TODO (check here, should be ok if I just | all bits? seems like it passes)
+    PDirPool[proc_index][pde_index] = (unsigned int *) ((unsigned int)IDPTbl[pde_index] | PT_PERM_PTU);
 }
 
 // Removes the specified page directory entry (sets the page directory entry to 0).
