@@ -7,12 +7,12 @@
 #include <lib/gcc.h>
 #include <vmm/MPTNew/export.h>
 
-#define VM_TOP     0xffffffff
-#define VM_USERHI  0xf0000000
-#define VM_DYNLINK 0xe0000000
-#define VM_STACKHI 0xd0000000
-#define VM_USERLO  0x40000000
-#define VM_BOTTOM  0x00000000
+#define VM_TOP     0xffffffff // Top of virtual memory
+#define VM_USERHI  0xf0000000 // Upper boundary of user space
+#define VM_DYNLINK 0xe0000000 // Dynamic linking region
+#define VM_STACKHI 0xd0000000 // Stack high boundary
+#define VM_USERLO  0x40000000 // Lower boundary of user space
+#define VM_BOTTOM  0x00000000 // Bottom of virtual memory
 
 extern char cons_getc(void);
 
