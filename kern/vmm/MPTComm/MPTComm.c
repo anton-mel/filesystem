@@ -9,12 +9,27 @@
  */
 void pdir_init(unsigned int mbi_addr)
 {
-    // TODO: Define your local variables here.
+    unsigned int vaddr, proc_index, pde_index;
 
+    // Initialize the identity page table
     idptbl_init(mbi_addr);
 
-    // TODO
+    for (proc_index = 0; proc_index < NUM_IDS; proc_index++) {
+        for (pde_index = 0; pde_index < 1024; pde_index++) {
+            vaddr = pde_index << 22;
+
+            // Map kernel/system regions, unmap user space
+            if (vaddr < 0x40000000 || vaddr >= 0xF0000000) {
+                // Kernel/System memory: Identity map for all processes
+                set_pdir_entry_identity(proc_index, pde_index);
+            } else {
+                // User space: Explicitly unmap the page directory entry
+                rmv_pdir_entry(proc_index, pde_index);
+            }
+        }
+    }
 }
+
 
 /**
  * Allocates a page (with container_alloc) for the page table,
@@ -25,8 +40,21 @@ void pdir_init(unsigned int mbi_addr)
  */
 unsigned int alloc_ptbl(unsigned int proc_index, unsigned int vaddr)
 {
-    // TODO
-    return 0;
+    unsigned int page_index = container_alloc(proc_index);
+    if (page_index == 0) {
+        return 0; // no physical page available
+    }
+    
+    // create a new page table
+    set_pdir_entry_by_va(proc_index, vaddr, (page_index << 12) | PTE_P | PTE_W);
+
+    // default out the page table entries
+    unsigned int pde_index = vaddr >> 22;
+    for (unsigned int pte_index = 0; pte_index < 1024; pte_index++) {
+        rmv_ptbl_entry(proc_index, pde_index, pte_index);
+    }
+    
+    return page_index;
 }
 
 // Reverse operation of alloc_ptbl.
@@ -35,4 +63,16 @@ unsigned int alloc_ptbl(unsigned int proc_index, unsigned int vaddr)
 void free_ptbl(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
+    // first, get the pdir entry to get the PP index
+    unsigned int pdir_entry = get_pdir_entry_by_va(proc_index, vaddr);
+    
+    if (!(pdir_entry & PTE_P)) {
+        // make sure it even exists
+        return;
+    }
+
+    unsigned int page_index = pdir_entry >> 12; // PPN
+    rmv_pdir_entry_by_va(proc_index, vaddr); // free PDir entry
+    container_free(proc_index, page_index); // free PhyPage
 }
+

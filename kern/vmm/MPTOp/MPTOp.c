@@ -66,30 +66,20 @@ void set_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr,
 // While the permission for the rest should be PTE_P and PTE_W.
 void idptbl_init(unsigned int mbi_addr)
 {
-    // TODO: Define your local variables here.
     unsigned int pde_index, pte_index; 
     unsigned int addr, perm;
 
     container_init(mbi_addr);
 
-    // set_ptbl_entry_by_va
-    // set_pdir_entry_by_va
-    for (int pde_index = 0; pde_index < 1024; pde_index++) {
-        for (int pte_index = 0; pte_index < 1024; pte_index++) {
-            // pde | pte | offset
-            // 10n | 10b | 12b
+    for (pde_index = 0; pde_index < 1024; pde_index++) {
+        for (pte_index = 0; pte_index < 1024; pte_index++) {
             addr = (pde_index << 22) | (pte_index << 12);
-
-	    // Check if this address is already marked as kernel memory by inspecting the permission bits
-            unsigned int existing_perm = get_ptbl_entry_by_va(0, addr);
-
-            if (existing_perm & PTE_G) {
-		// GLOBAL bit is for kernel
+            // elf.c: VM_USERLO = 0x40000000 & VM_USERHI = 0xF0000000
+            if (addr < 0x40000000 || addr >= 0xF0000000) {
                 perm = PTE_P | PTE_W | PTE_G;
             } else {
                 perm = PTE_P | PTE_W;
             }
-
             set_ptbl_entry_identity(pde_index, pte_index, perm);
         }
     }
