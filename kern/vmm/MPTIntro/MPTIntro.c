@@ -53,7 +53,7 @@ unsigned int get_pdir_entry(unsigned int proc_index, unsigned int pde_index)
 void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int page_index)
 {
-    // look at the INTEL manual for the general design. [Format of a Linear Address]
+    // TODO
     PDirPool[proc_index][pde_index] = (unsigned int *)((page_index << 12) | PT_PERM_PTU);
 }
 
@@ -63,7 +63,7 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
 // This will be used to map a page directory entry to an identity page table.
 void set_pdir_entry_identity(unsigned int proc_index, unsigned int pde_index)
 {
-    // TODO (check here, should be ok if I just | all bits? seems like it passes)
+    // TODO
     PDirPool[proc_index][pde_index] = (unsigned int *) ((unsigned int)IDPTbl[pde_index] | PT_PERM_PTU);
 }
 
@@ -82,10 +82,9 @@ unsigned int get_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
 {
     // TODO
     if (!((unsigned int)PDirPool[proc_index][pde_index] & PTE_P)) {
-        return 0; // if page table not valid
+        return 0;
     }
 
-    // so we should clean the flag and look up the entry from the pool
     unsigned int *ptbl = (unsigned int *) ((unsigned int) PDirPool[proc_index][pde_index] & ~0xFFF);
     return ptbl[pte_index];
 }
@@ -102,7 +101,7 @@ void set_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
     }
 
     unsigned int *ptbl = (unsigned int *) ((unsigned int) PDirPool[proc_index][pde_index] & ~0xFFF);
-    ptbl[pte_index] = (page_index << 12) | perm; // to place the protection bits
+    ptbl[pte_index] = (page_index << 12) | perm;
 }
 
 // Sets up the specified page table entry in IDPTbl as the identity map.
@@ -111,7 +110,6 @@ void set_ptbl_entry_identity(unsigned int pde_index, unsigned int pte_index,
                              unsigned int perm)
 {
     // TODO
-    // look at the INTEL manual.. [Format of a Linear Address]
     IDPTbl[pde_index][pte_index] = ((pde_index << 22) | (pte_index << 12)) | perm;
 }
 
@@ -121,7 +119,7 @@ void rmv_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
 {
     // TODO
     if (!((unsigned int) PDirPool[proc_index][pde_index] & PTE_P)) {
-        return; // idk, we cannot panic, so i assume they do not test this
+        return;
     }
 
     unsigned int *ptbl = (unsigned int *) ((unsigned int) PDirPool[proc_index][pde_index] & ~0xFFF);
