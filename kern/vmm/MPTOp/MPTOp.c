@@ -10,7 +10,7 @@
 unsigned int get_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
-    // little endian
+    // Considering Little Endian.
     unsigned int pde = vaddr >> 22;
     unsigned int pte = (vaddr >> 12) & 0x3FF;
     return get_ptbl_entry(proc_index, pde, pte);
