@@ -9,11 +9,15 @@
  */
 void pdir_init_kern(unsigned int mbi_addr)
 {
-    // TODO: Define your local variables here.
-
+    // For each process from id 0 to NUM_IDS - 1, 
+    // set up the page directory entries.
     pdir_init(mbi_addr);
-
-    //TODO
+    
+    // For process 0, map the ENTIRE space as identity (adds USER space).
+    for (unsigned int vaddr = 0x40000000; vaddr < 0xf0000000; vaddr += (1 << 22)) {
+        unsigned int pde_index = vaddr >> 22;
+        set_pdir_entry_identity(0, pde_index);
+    }
 }
 
 /**
