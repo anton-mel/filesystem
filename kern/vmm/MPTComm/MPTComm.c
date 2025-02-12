@@ -9,27 +9,26 @@
  */
 void pdir_init(unsigned int mbi_addr)
 {
+    // TODO
+    // LINEAR ADDR => | 31-22 | 21-12 | 11-0 |
     unsigned int vaddr, proc_index, pde_index;
-
     // Initialize the identity page table
     idptbl_init(mbi_addr);
 
+    // for each process and its pagetable size of PAGE
     for (proc_index = 0; proc_index < NUM_IDS; proc_index++) {
+        // 4KB (PAGE) => 1024 unsigned int addresses or 2^10 combinations => 10 bits
         for (pde_index = 0; pde_index < 1024; pde_index++) {
-            vaddr = pde_index << 22;
-
-            // Map kernel/system regions, unmap user space
+            vaddr = pde_index << 22; // simulate VA
+            // map kernel/system regions & unmap user space
             if (vaddr < 0x40000000 || vaddr >= 0xF0000000) {
-                // Kernel/System memory: Identity map for all processes
                 set_pdir_entry_identity(proc_index, pde_index);
             } else {
-                // User space: Explicitly unmap the page directory entry
                 rmv_pdir_entry(proc_index, pde_index);
             }
         }
     }
 }
-
 
 /**
  * Allocates a page (with container_alloc) for the page table,
@@ -40,16 +39,22 @@ void pdir_init(unsigned int mbi_addr)
  */
 unsigned int alloc_ptbl(unsigned int proc_index, unsigned int vaddr)
 {
+    // TODO
+    // LINEAR ADDR => | 31-22 | 21-12 | 11-0 |
+    // first, allocate the PM for the pagetable (1 PAGE)
     unsigned int page_index = container_alloc(proc_index);
+    // PP unavailable/ exceeded the quota
     if (page_index == 0) {
-        return 0; // no physical page available
+        return 0; 
     }
-    
-    // create a new page table
+
+    // register the map from [vaddr] to PP # [page_index] in the P_DIR
+    // avoid global permissions, since non-kernel processes should not share state
     set_pdir_entry_by_va(proc_index, vaddr, (page_index << 12) | PTE_P | PTE_W);
 
     // default out the page table entries
     unsigned int pde_index = vaddr >> 22;
+    // since PT is size of PAGE => 2^10 entries => 1024 unsigned int addrs
     for (unsigned int pte_index = 0; pte_index < 1024; pte_index++) {
         rmv_ptbl_entry(proc_index, pde_index, pte_index);
     }
@@ -63,16 +68,17 @@ unsigned int alloc_ptbl(unsigned int proc_index, unsigned int vaddr)
 void free_ptbl(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
-    // first, get the pdir entry to get the PP index
+    // PAGE DIRECTORY ENTRY => | 31-12 | 11-0 |
+    // first, get the P_DIR entry to get the PP index
     unsigned int pdir_entry = get_pdir_entry_by_va(proc_index, vaddr);
     
     if (!(pdir_entry & PTE_P)) {
-        // make sure it even exists
         return;
     }
 
-    unsigned int page_index = pdir_entry >> 12; // PPN
+    // given 4GB PM space, we get 2^20 bits addr
+    unsigned int page_index = pdir_entry >> 12;
+
     rmv_pdir_entry_by_va(proc_index, vaddr); // free PDir entry
     container_free(proc_index, page_index); // free PhyPage
 }
-
