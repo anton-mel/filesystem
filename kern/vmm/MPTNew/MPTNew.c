@@ -16,12 +16,21 @@
 unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
                         unsigned int perm)
 {
+    // TODO
+    // First, allocate a PM page and verify its success.
     unsigned int page_index = container_alloc(proc_index);
     if (!page_index) {
         return MagicNumber;
     }
 
-    return map_page(proc_index, vaddr, page_index, perm);
+    // On success, map the PA to VA and handle failure (freeing).
+    unsigned int result = map_page(proc_index, vaddr, page_index, perm);
+    if (result == MagicNumber) {
+        container_free(proc_index, page_index);
+        return MagicNumber;
+    }
+
+    return result;
 }
 
 /**
