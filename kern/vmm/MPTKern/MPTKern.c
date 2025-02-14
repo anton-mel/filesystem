@@ -47,7 +47,7 @@ unsigned int map_page(unsigned int proc_index, unsigned int vaddr,
 
     // Success. Map the page with the specified permissions.
     set_ptbl_entry_by_va(proc_index, vaddr, page_index, perm);
-    return pde;
+    return pdir_entry;
 }
 
 /**
