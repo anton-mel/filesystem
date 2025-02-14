@@ -9,6 +9,7 @@
  */
 void pdir_init_kern(unsigned int mbi_addr)
 {
+    // TODO
     // For each process from id 0 to NUM_IDS - 1, 
     // set up the page directory entries.
     pdir_init(mbi_addr);
@@ -31,18 +32,22 @@ void pdir_init_kern(unsigned int mbi_addr)
 unsigned int map_page(unsigned int proc_index, unsigned int vaddr,
                       unsigned int page_index, unsigned int perm)
 {
-    unsigned int pde = get_pdir_entry_by_va(proc_index, vaddr);
+    // TODO
+    // First, check if the page directory entry mapping already exists.
+    // This determines whether a new page table needs to be allocated.
+    unsigned int pdir_entry = get_pdir_entry_by_va(proc_index, vaddr);
 
-    if (!(pde & PTE_P)) {
-        pde = alloc_ptbl(proc_index, vaddr);
-        if (!pde) {
+    if (pdir_entry == 0) {
+        // Allocate the PT
+        pdir_entry = alloc_ptbl(proc_index, vaddr);
+        if (!pdir_entry) {
             return MagicNumber;
         }
     }
 
+    // Success. Map the page with the specified permissions.
     set_ptbl_entry_by_va(proc_index, vaddr, page_index, perm);
-    
-    return pde; // TODO
+    return pde;
 }
 
 /**
@@ -55,11 +60,12 @@ unsigned int map_page(unsigned int proc_index, unsigned int vaddr,
  */
 unsigned int unmap_page(unsigned int proc_index, unsigned int vaddr)
 {
-    unsigned int pde = get_ptbl_entry_by_va(proc_index, vaddr);
+    // Fetch and remove PT entry by vaddr provided (already asserts PTE_P).
+    unsigned int ptbl_entry = get_ptbl_entry_by_va(proc_index, vaddr);
 
-    if (pde & PTE_P) {
+    if (ptbl_entry != 0) {
         rmv_ptbl_entry_by_va(proc_index, vaddr);
     }
 
-    return pde;
+    return ptbl_entry;
 }
