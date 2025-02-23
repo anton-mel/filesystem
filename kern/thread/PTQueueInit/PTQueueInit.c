@@ -12,6 +12,10 @@ void tqueue_init(unsigned int mbi_addr)
     tcb_init(mbi_addr);
 
     // TODO
+    // NUM_IDS + 1 bc mCertiKOS does it (read PTQueueIntro)
+    for (int id = 0; id < NUM_IDS + 1; id++) {
+        tqueue_init_at_id(id);
+    }
 }
 
 /**
@@ -23,6 +27,8 @@ void tqueue_init(unsigned int mbi_addr)
 void tqueue_enqueue(unsigned int chid, unsigned int pid)
 {
     // TODO
+    
+    
 }
 
 /**

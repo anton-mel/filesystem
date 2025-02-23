@@ -6,27 +6,30 @@
  * the current thread's states and restore the new thread's states.
  */
 struct kctx {
-    void *esp;
-    unsigned int edi;
-    unsigned int esi;
-    unsigned int ebx;
-    unsigned int ebp;
-    void *eip;
+    void *esp; // stack pointer (changing the threads)
+    unsigned int edi; // destination index (g/p)
+    unsigned int esi; // source index (g/p)
+    unsigned int ebx; // base register (g/p)
+    unsigned int ebp; // base pointer (the start of the curr stack frame)
+    void *eip; // next instruction (not stored for ctx switch)
 };
 
 // Memory to save the NUM_IDS kernel thread states.
 struct kctx kctx_pool[NUM_IDS];
 
+// allows to chnage the stack pointer of the thread
 void kctx_set_esp(unsigned int pid, void *esp)
 {
     kctx_pool[pid].esp = esp;
 }
 
+// used during the context switch to update back the next nstruction
 void kctx_set_eip(unsigned int pid, void *eip)
 {
     kctx_pool[pid].eip = eip;
 }
 
+// needed to be implemented in asm
 extern void cswitch(struct kctx *from_kctx, struct kctx *to_kctx);
 
 /**
