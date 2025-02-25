@@ -11,10 +11,8 @@ void tqueue_init(unsigned int mbi_addr)
 
     tcb_init(mbi_addr);
 
-    // TODO
-    // NUM_IDS + 1 bc mCertiKOS does it (read PTQueueIntro)
-    for (int id = 0; id < NUM_IDS + 1; id++) {
-        tqueue_init_at_id(id);
+    for (int chid = 0; chid < NUM_IDS + 1; chid++) {
+        tqueue_init_at_id(chid);
     }
 }
 
@@ -26,9 +24,18 @@ void tqueue_init(unsigned int mbi_addr)
  */
 void tqueue_enqueue(unsigned int chid, unsigned int pid)
 {
-    // TODO
-    
-    
+    // Assumes that next and prev on pid is currently pointing to NUM_IDS
+    unsigned int q_tail = tqueue_get_tail(chid);
+
+    if (q_tail == NUM_IDS) {
+        tqueue_set_tail(chid, pid);
+        tqueue_set_head(chid, pid);
+    } else {
+        tcb_set_next(q_tail, pid);
+        tcb_set_prev(pid, q_tail);
+        
+        tqueue_set_tail(chid, pid);
+    }
 }
 
 /**
@@ -38,8 +45,25 @@ void tqueue_enqueue(unsigned int chid, unsigned int pid)
  */
 unsigned int tqueue_dequeue(unsigned int chid)
 {
-    // TODO
-    return 0;
+    unsigned int q_head = tqueue_get_head(chid);
+
+    if (q_head == NUM_IDS) {
+        return NUM_IDS;
+    }
+
+    unsigned int next = tcb_get_next(q_head);
+    if (next == NUM_IDS) { // if only one node in list
+        tqueue_set_head(chid, NUM_IDS);
+        tqueue_set_tail(chid, NUM_IDS);
+    } else { // if more than one node in list
+        tcb_set_prev(next, NUM_IDS);
+        tqueue_set_head(chid, next);
+    }
+
+    tcb_set_next(q_head, NUM_IDS);
+    tcb_set_prev(q_head, NUM_IDS);
+
+    return q_head;
 }
 
 /**
@@ -48,5 +72,30 @@ unsigned int tqueue_dequeue(unsigned int chid)
  */
 void tqueue_remove(unsigned int chid, unsigned int pid)
 {
-    // TODO
+    unsigned int next = tcb_get_next(pid);
+    unsigned int prev = tcb_get_prev(pid);
+    unsigned int q_head = tqueue_get_head(chid);
+
+    if (q_head == NUM_IDS) {
+        return;
+    }
+
+    if (next == NUM_IDS) {
+        tqueue_set_tail(chid, prev);
+    }
+
+    if (prev == NUM_IDS) {
+        tqueue_set_head(chid, next);
+    }
+
+    if (next != NUM_IDS) {
+        tcb_set_prev(next, prev);
+    }
+
+    if (prev != NUM_IDS) {
+        tcb_set_next(prev, next);
+    }
+
+    tcb_set_next(pid, NUM_IDS);
+    tcb_set_prev(pid, NUM_IDS);
 }

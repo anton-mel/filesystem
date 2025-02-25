@@ -17,7 +17,7 @@ struct kctx {
 // Memory to save the NUM_IDS kernel thread states.
 struct kctx kctx_pool[NUM_IDS];
 
-// allows to chnage the stack pointer of the thread
+// allows to change the stack pointer of the thread
 void kctx_set_esp(unsigned int pid, void *esp)
 {
     kctx_pool[pid].esp = esp;
