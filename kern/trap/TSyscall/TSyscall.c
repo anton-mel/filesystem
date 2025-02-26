@@ -194,8 +194,10 @@ void sys_fork(void)
     unsigned int child_pid;
 
     // first, define the child given the 
-    // parent current process (elf copied over)
-    child_pid = proc_create((void *)uctx_pool[cur_pid].regs.eip, 0);
+    // parent current process (elf copied over
+    // inside the proc_create, I see the further call
+    // sys_spawn that should handle the elf header).
+    child_pid = proc_create(NULL, 0);
     if (child_pid == NUM_IDS) {
         // failure
         syscall_set_errno(E_INVAL_PID);
