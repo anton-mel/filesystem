@@ -11,6 +11,7 @@
 
 extern tf_t uctx_pool[NUM_IDS];
 
+
 static void trap_dump(tf_t *tf)
 {
     if (tf == NULL)
@@ -88,6 +89,29 @@ void pgflt_handler(void)
     }
 }
 
+
+// !NOTE: (defined in kern/dev/intr.h)
+// Hardware IRQ numbers. We receive these as (T_IRQ0 + IRQ_WHATEVER)
+/* (32 ~ 47) ISA interrupts: used by i8259 */
+/* (48 ~ 55) reserved for IOAPIC extended interrupts */
+// #define T_IRQ0          32  /* Legacy ISA hardware interrupts: IRQ0-15. */
+// #define IRQ_TIMER       0   /* 8253 Programmable Interval Timer (PIT) */
+// #define IRQ_KBD         1   /* Keyboard interrupt */
+// #define IRQ_SLAVE       2   /* cascaded to slave 8259 */
+// #define IRQ_SERIAL24    3   /* Serial (COM2 and COM4) interrupt */
+// #define IRQ_SERIAL13    4   /* Serial (COM1 and COM4) interrupt */
+// #define IRQ_LPT2        5   /* Parallel (LPT2) interrupt */
+// #define IRQ_FLOPPY      6   /* Floppy interrupt */
+// #define IRQ_SPURIOUS    7   /* Spurious interrupt or LPT1 interrupt */
+// #define IRQ_RTC         8   /* RTC interrupt */
+// #define IRQ_MOUSE       12  /* Mouse interrupt */
+// #define IRQ_COPROCESSOR 13  /* Math coprocessor interrupt */
+// #define IRQ_IDE1        14  /* IDE disk controller 1 interrupt */
+// #define IRQ_IDE2        15  /* IDE disk controller 2 interrupt */
+// #define IRQ_EHCI_1      16
+// #define IRQ_ERROR       19
+// #define IRQ_EHCI_2      23
+
 /**
  * We currently only handle the page fault exception.
  * All other exceptions should be routed to the default exception handler.
@@ -95,6 +119,21 @@ void pgflt_handler(void)
 void exception_handler(void)
 {
     // TODO
+    // first, get the trap frame to
+    // determine the type of exception
+    // and call the fns above: either
+    // page_fault or default handler.
+    unsigned int cur_pid = get_curid();
+    tf_t *tf = &uctx_pool[cur_pid];
+
+    switch (tf->trapno) {
+        case T_PGFLT:
+            pgflt_handler();
+            break;
+        default:
+            default_exception_handler();
+            break;
+    }
 }
 
 static int spurious_intr_handler(void)
@@ -121,6 +160,26 @@ static int default_intr_handler(void)
 void interrupt_handler(void)
 {
     // TODO
+    unsigned int cur_pid = get_curid();
+    tf_t *tf = &uctx_pool[cur_pid];
+
+    switch (tf->trapno) {
+        // everything defined for i8258 interrupt handler [31:0]
+        // should be accessed iver the T_IRQ0 embedded offset
+        case T_IRQ0 + IRQ_TIMER:
+            // this is for scheduler to sync
+            // the processes execution 
+            timer_intr_handler();
+            break;
+        case T_IRQ0 + IRQ_SPURIOUS:
+            // this one is weird, i have checked
+            // it is for the noise (errornous) interrupts
+            spurious_intr_handler();
+            break;
+        default:
+            default_intr_handler();
+            break;
+    }
 }
 
 void trap(tf_t *tf)
