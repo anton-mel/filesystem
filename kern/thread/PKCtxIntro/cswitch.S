@@ -7,7 +7,7 @@ cswitch:
 	movl	8(%esp), %edx	/* %edx <- to */
 
 	/* TODO: save the old kernel context */
-	lea 	12(%esp), %ecx
+	lea 	4(%esp), %ecx
 	movl	%ecx, (%eax) /*from.esp = esp */
 
 	movl	%edi, 4(%eax)
@@ -25,5 +25,5 @@ cswitch:
 	movl	12(%edx), %ebx
 	movl	16(%edx), %ebp
 
-	xor	%eax, %eax 
+	xor	%eax, %eax
 	jmp 	*20(%edx)
