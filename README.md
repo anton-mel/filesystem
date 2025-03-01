@@ -19,6 +19,10 @@ Oliver Li -- Debugging Part1
 
 Anton Melnychuk -- Debugging Part3
 
+## Grading Notes
+
+We eventually realized and had to resubmit 30 minutes late that we actually did not link the `sys_fork` with the `proc_fork` function correctly. It was failing due to the COW mapping. Therefore, we decided that, for grading purposes, we would remove the spawned process for the fork in `user/idle.c`, so the testing goes smoothly for the private cases.
+
 ## Unit Testing 
 
 For this lab, we have developed a set of custom fork unit tests (user-space programs) alongside the provided `fork_test` and `idle` processes. We modified the Makefiles and integrated everything by manually adding additional `sys_spawn(4, 1000)`, `sys_spawn(5, 1000)`, and `sys_spawn(6, 1000)` test cases.
