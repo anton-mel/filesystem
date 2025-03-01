@@ -24,5 +24,10 @@ int main(int argc, char **argv)
     else
         printf("Failed to launch ding.\n");
 
+    if ((ding_pid = spawn(4, 1000)) != -1)
+        printf("fork in process %d.\n", ding_pid);
+    else
+        printf("Failed to launch fork.\n");
+
     return 0;
 }

@@ -67,7 +67,8 @@ void pgflt_handler(void)
         if (pte_entry & PTE_COW) {
             // handling copy-on-write
             // TODO
-
+            copy_cow_page(cur_pid, fault_va);
+            return;
         } else {
             KERN_PANIC("Writing to read-only page: va = %p\n", fault_va);
         }
