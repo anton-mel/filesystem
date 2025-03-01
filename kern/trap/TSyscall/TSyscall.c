@@ -191,22 +191,13 @@ void sys_yield(void)
 void sys_fork(void)
 {
     // TODO
-    // // !NOTE: this is wrong, this should call proc_fork()
-    // unsigned int cur_pid = get_curid();
-    // unsigned int child_pid;
-
-    // // first, define the child given the 
-    // // parent current process (elf copied over
-    // // inside the proc_create, I see the further call
-    // // sys_spawn that should handle the elf header).
-    // child_pid = proc_create(NULL, 0);
-    // if (child_pid == NUM_IDS) {
-    //     // failure
-    //     syscall_set_errno(E_INVAL_PID);
-    //     syscall_set_retval1(NUM_IDS);
-    // } else {
-    //     // Success
-    //     syscall_set_errno(E_SUCC);
-    //     syscall_set_retval1(child_pid);
-    // }
+    unsigned int child_pid = proc_fork();
+    if (child_pid == NUM_IDS) {
+        syscall_set_errno(E_INVAL_PID);
+        syscall_set_retval1(NUM_IDS);
+    } else {
+        syscall_set_errno(E_SUCC);
+        syscall_set_retval1(child_pid);
+    }
 }
+

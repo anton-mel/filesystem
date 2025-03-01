@@ -95,13 +95,13 @@ void copy_cow_page(unsigned int pid, unsigned int vaddr) {
 
     // remove the old page table entry (after, right?)
     rmv_ptbl_entry(pid, pde_index, pte_index);
+    set_cr3(PDirPool[pid]);
 
     // map the new page with write permissions
     // clear the COW bit!
     unsigned int new_perm = (perm & ~PTE_COW) | PTE_W;
     set_ptbl_entry(pid, pde_index, pte_index, new_page, new_perm);
 
-    set_cr3(PDirPool[pid]);
 }
 
 
