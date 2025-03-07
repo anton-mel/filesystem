@@ -62,7 +62,7 @@ void trap_init(unsigned int cpu_idx)
     trap_handler_register(cpu_idx, T_SIMD, exception_handler);
     trap_handler_register(cpu_idx, T_SECEV, exception_handler);
 
-    // Register interrupt handlers
+    // Register interrupt handlers [Ones that are needed]
     trap_handler_register(cpu_idx, T_IRQ0 + IRQ_TIMER, interrupt_handler); // dispatched within
     trap_handler_register(cpu_idx, T_IRQ0 + IRQ_KBD, interrupt_handler);
     trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SERIAL13, interrupt_handler); 
