@@ -16,16 +16,24 @@ struct {
     uint32_t rpos, wpos;
 } cons;
 
+// @anton-mel: fine-grained lock
+static spinlock_t console_lock;
+
 void cons_init()
 {
+    // @anton-mel: init local spinlock
+    spinlock_init(&console_lock);
     memset(&cons, 0x0, sizeof(cons));
     serial_init();
     video_init();
 }
 
+// @anton-mel: write happens here, lock
 void cons_intr(int (*proc)(void))
 {
     int c;
+
+    spinlock_acquire(&console_lock);
 
     while ((c = (*proc)()) != -1) {
         if (c == 0)
@@ -34,11 +42,16 @@ void cons_intr(int (*proc)(void))
         if (cons.wpos == CONSOLE_BUFFER_SIZE)
             cons.wpos = 0;
     }
+
+    spinlock_release(&console_lock);
 }
 
+// @anton-mel: write happens here, lock
 char cons_getc(void)
 {
     int c;
+
+    spinlock_acquire(&console_lock);
 
     // poll for any pending input characters,
     // so that this function works even when interrupts are disabled
@@ -53,19 +66,27 @@ char cons_getc(void)
             cons.rpos = 0;
         return c;
     }
+
+    spinlock_release(&console_lock);
+
     return 0;
 }
 
+// @anton-mel: write happens here, lock
 void cons_putc(char c)
 {
     serial_putc(c);
+
+    spinlock_acquire(&console_lock);
     video_putc(c);
+    spinlock_release(&console_lock);
 }
 
 char getchar(void)
 {
     char c;
 
+    // @anton-mel: already locked within
     while ((c = cons_getc()) == 0)
         /* do nothing */ ;
     return c;
@@ -85,10 +106,15 @@ char *readline(const char *prompt)
         dprintf("%s", prompt);
 
     i = 0;
+    
+    spinlock_acquire(&console_lock);
+    
     while (1) {
         c = getchar();
         if (c < 0) {
             dprintf("read error: %e\n", c);
+            // @anton-mel: release before returning
+            spinlock_release(&console_lock); 
             return NULL;
         } else if ((c == '\b' || c == '\x7f') && i > 0) {
             putchar('\b');
@@ -99,6 +125,8 @@ char *readline(const char *prompt)
         } else if (c == '\n' || c == '\r') {
             putchar('\n');
             linebuf[i] = 0;
+            // @anton-mel: release before returning
+            spinlock_release(&console_lock);
             return linebuf;
         }
     }

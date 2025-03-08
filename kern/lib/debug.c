@@ -6,8 +6,13 @@
 #include <lib/types.h>
 #include <lib/spinlock.h>
 
+// @anton-mel: fine-grained lock
+static spinlock_t debug_lock;
+
 void debug_init(void)
 {
+    // @anton-mel: init local spinlock
+    spinlock_init(&debug_lock);
 }
 
 extern int vdprintf(const char *fmt, va_list ap);
@@ -15,10 +20,13 @@ extern int vdprintf(const char *fmt, va_list ap);
 void debug_info(const char *fmt, ...)
 {
 #ifdef DEBUG_MSG
+// @anton-mel: lock VA write
+spinlock_acquire(&debug_lock);
     va_list ap;
     va_start(ap, fmt);
     vdprintf(fmt, ap);
     va_end(ap);
+spinlock_release(&debug_lock);
 #endif
 }
 
@@ -26,12 +34,14 @@ void debug_info(const char *fmt, ...)
 
 void debug_normal(const char *file, int line, const char *fmt, ...)
 {
+// @anton-mel: lock VGA & VA write
+spinlock_acquire(&debug_lock);
     dprintf("[D] %s:%d: ", file, line);
-
     va_list ap;
     va_start(ap, fmt);
     vdprintf(fmt, ap);
     va_end(ap);
+spinlock_release(&debug_lock);
 }
 
 #define DEBUG_TRACEFRAMES 10
@@ -55,6 +65,8 @@ gcc_noinline void debug_panic(const char *file, int line, const char *fmt, ...)
     uintptr_t eips[DEBUG_TRACEFRAMES];
     va_list ap;
 
+// @anton-mel: lock VGA & VA write
+spinlock_acquire(&debug_lock);
     dprintf("[P] %s:%d: ", file, line);
 
     va_start(ap, fmt);
@@ -67,17 +79,22 @@ gcc_noinline void debug_panic(const char *file, int line, const char *fmt, ...)
 
     dprintf("Kernel Panic !!!\n");
 
+// @anton-mel: Note, I assume this is impossible to recover from the halt(),
+// so the lock is unreleased. Best practice is to dissable interrupts and 
+// keep it released. Thus, halt() will stop execution.
     halt();
 }
 
 void debug_warn(const char *file, int line, const char *fmt, ...)
 {
+// @anton-mel: lock VGA & VA write
+spinlock_acquire(&debug_lock);
     dprintf("[W] %s:%d: ", file, line);
-
     va_list ap;
     va_start(ap, fmt);
     vdprintf(fmt, ap);
     va_end(ap);
+spinlock_release(&debug_lock);
 }
 
 #endif  /* DEBUG_MSG */

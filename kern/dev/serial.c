@@ -11,6 +11,7 @@
  * Adapted for PIOS by Bryan Ford at Yale University.
  */
 
+#include <lib/spinlock.h>
 #include <lib/types.h>
 #include <lib/x86.h>
 
@@ -46,6 +47,10 @@
 
 bool serial_exists;
 
+// @anton-mel: fine-grained lock
+static spinlock_t serial_lock;
+
+// @anton-mel: no shared state, atomic inb
 // Stupid I/O delay routine necessitated by historical PC design flaws
 static void delay(void)
 {
@@ -55,19 +60,28 @@ static void delay(void)
     inb(0x84);
 }
 
+// @anton-mel: no shared state, atomic inb
 static int serial_proc_data(void)
 {
-    if (!(inb(COM1 + COM_LSR) & COM_LSR_DATA))
+    if (!(inb(COM1 + COM_LSR) & COM_LSR_DATA)) {
         return -1;
+    }
     return inb(COM1 + COM_RX);
 }
 
+// @anton-mel: shared serial_exists
 void serial_intr(void)
 {
-    if (serial_exists)
+    spinlock_acquire(&serial_lock);
+    if (serial_exists) {
+        spinlock_release(&serial_lock);
         cons_intr(serial_proc_data);
+    } else {
+        spinlock_release(&serial_lock);
+    }
 }
 
+// @anton-mel: no shared state, atomic outb
 static int serial_reformatnewline(int c, int p)
 {
     int cr = '\r';
@@ -84,10 +98,17 @@ static int serial_reformatnewline(int c, int p)
         return 0;
 }
 
+// @anton-mel: shared serial_exists
 void serial_putc(char c)
 {
-    if (!serial_exists)
+    spinlock_acquire(&serial_lock);
+    if (!serial_exists) {
+        // @anton-mel: release before returning
+        spinlock_release(&serial_lock);
         return;
+    } else {
+        spinlock_release(&serial_lock);
+    }
 
     int i;
     for (i = 0; !(inb(COM1 + COM_LSR) & COM_LSR_TXRDY) && i < 12800; i++)
@@ -99,6 +120,9 @@ void serial_putc(char c)
 
 void serial_init(void)
 {
+    // @anton-mel: init local spinlock
+    spinlock_init(&serial_lock);
+
     /* turn off interrupt */
     outb(COM1 + COM_IER, 0);
 
@@ -118,17 +142,26 @@ void serial_init(void)
     /* Turn on DTR, RTS, and OUT2. */
     outb(COM1 + COM_MCR, 0x0b);
 
+    // @anton-mel: protect serial_exists
+    spinlock_acquire(&serial_lock);
     // Clear any preexisting overrun indications and interrupts
     // Serial COM1 doesn't exist if COM_LSR returns 0xFF
     serial_exists = (inb(COM1 + COM_LSR) != 0xFF);
+    spinlock_release(&serial_lock);
+    
     (void) inb(COM1 + COM_IIR);
     (void) inb(COM1 + COM_RX);
 }
 
+// @anton-mel: shared serial_exists
 void serial_intenable(void)
 {
+    spinlock_acquire(&serial_lock);
     if (serial_exists) {
+        spinlock_release(&serial_lock);
         outb(COM1 + COM_IER, 1);
         serial_intr();
+    } else {
+        spinlock_release(&serial_lock);
     }
 }
