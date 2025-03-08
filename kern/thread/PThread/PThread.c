@@ -7,8 +7,21 @@
 
 #include "import.h"
 
+// @anton-mel: two different problem constraints,
+// no need to hold for both at the same time.
+static spinlock_t thread_table_lock;
+// IMPORTANT: Per-CPU locks for ready queues
+// so that we do not wait on each other on init.
+static spinlock_t ready_queue_lock[NUM_CPUS];
+
 void thread_init(unsigned int mbi_addr)
 {
+    spinlock_init(&thread_table_lock);
+    for (int i = 0; i < NUM_CPUS; i++) {
+        // @anton-mel: Initialize per-CPU locks
+        spinlock_init(&ready_queue_lock[i]);  
+    }
+
     tqueue_init(mbi_addr);
     set_curid(0);
     tcb_set_state(0, TSTATE_RUN);
@@ -21,11 +34,19 @@ void thread_init(unsigned int mbi_addr)
  */
 unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
+spinlock_acquire(&thread_table_lock);
     unsigned int pid = kctx_new(entry, id, quota);
     if (pid != NUM_IDS) {
         tcb_set_cpu(pid, get_pcpu_idx());
         tcb_set_state(pid, TSTATE_READY);
-        tqueue_enqueue(NUM_IDS + get_pcpu_idx(), pid);
+spinlock_release(&thread_table_lock);
+
+    int cpu_idx = get_pcpu_idx();
+spinlock_acquire(&ready_queue_lock[cpu_idx]);
+        tqueue_enqueue(NUM_IDS + cpu_idx, pid);
+spinlock_release(&ready_queue_lock[cpu_idx]);
+    } else {
+spinlock_release(&thread_table_lock);
     }
 
     return pid;
@@ -45,12 +66,20 @@ void thread_yield(void)
     unsigned int new_cur_pid;
     unsigned int old_cur_pid = get_curid();
 
+spinlock_acquire(&thread_table_lock);
     tcb_set_state(old_cur_pid, TSTATE_READY);
-    tqueue_enqueue(NUM_IDS + get_pcpu_idx(), old_cur_pid);
+spinlock_release(&thread_table_lock);
 
-    new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
+    int cpu_idx = get_pcpu_idx();
+spinlock_acquire(&ready_queue_lock[cpu_idx]);
+    tqueue_enqueue(NUM_IDS + cpu_idx, old_cur_pid);
+    new_cur_pid = tqueue_dequeue(NUM_IDS + cpu_idx);
+spinlock_release(&ready_queue_lock[cpu_idx]);
+
+spinlock_acquire(&thread_table_lock);
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
+spinlock_release(&thread_table_lock);
 
     if (old_cur_pid != new_cur_pid) {
         kctx_switch(old_cur_pid, new_cur_pid);
