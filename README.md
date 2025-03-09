@@ -26,4 +26,5 @@ Everyone contributed equally to the assignment.
 |                | - Part 1: Multicore Support (Exercise 2)                       |
 |                | - Part 1: Multicore Support (Exercise 3-5)                     |
 |                | - Part 2: Preemptive Multitasking (Exercise 6)                 |
+|                | - Part 3: Preempting Kernel Execution (Exercise 7, 8, 10)      |
 | Oliver Li      | - Read Chapter 5 [Synchronizing Access to Shared Objects]      |
