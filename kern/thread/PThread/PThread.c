@@ -7,18 +7,17 @@
 
 #include "import.h"
 
-// @anton-mel: two different problem constraints,
-// no need to hold for both at the same time.
-static spinlock_t thread_table_lock;
-// IMPORTANT: Per-CPU locks for ready queues
-// so that we do not wait on each other on init.
+// IMPORTANT: Per-CPU locks (part1)
 static spinlock_t ready_queue_lock[NUM_CPUS];
+
+// @anton-mel: (part2)
+static int elapsed_time[NUM_CPUS] = {0};
+#define LAPIC_MS_INTR 1000 / LAPIC_TIMER_INTR_FREQ
 
 void thread_init(unsigned int mbi_addr)
 {
-    spinlock_init(&thread_table_lock);
     for (int i = 0; i < NUM_CPUS; i++) {
-        // @anton-mel: Initialize per-CPU locks
+        // @anton-mel
         spinlock_init(&ready_queue_lock[i]);  
     }
 
@@ -34,20 +33,18 @@ void thread_init(unsigned int mbi_addr)
  */
 unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
-spinlock_acquire(&thread_table_lock);
-    unsigned int pid = kctx_new(entry, id, quota);
+    unsigned int pid;
+    unsigned int cpu_idx = get_pcpu_idx();
+
+spinlock_acquire(&ready_queue_lock[cpu_idx]);
+    pid = kctx_new(entry, id, quota);
+
     if (pid != NUM_IDS) {
         tcb_set_cpu(pid, get_pcpu_idx());
         tcb_set_state(pid, TSTATE_READY);
-spinlock_release(&thread_table_lock);
-
-    int cpu_idx = get_pcpu_idx();
-spinlock_acquire(&ready_queue_lock[cpu_idx]);
         tqueue_enqueue(NUM_IDS + cpu_idx, pid);
-spinlock_release(&ready_queue_lock[cpu_idx]);
-    } else {
-spinlock_release(&thread_table_lock);
     }
+spinlock_release(&ready_queue_lock[cpu_idx]);
 
     return pid;
 }
@@ -65,23 +62,44 @@ void thread_yield(void)
 {
     unsigned int new_cur_pid;
     unsigned int old_cur_pid = get_curid();
+    unsigned int cpu_idx = get_pcpu_idx();
 
-spinlock_acquire(&thread_table_lock);
+    // @anton-mel: failed if held before ctx switch
+int is_already_aquired = spinlock_try_acquire(&ready_queue_lock[cpu_idx]);
+    if (is_already_aquired == 1) {
+        return;
+    }
+
     tcb_set_state(old_cur_pid, TSTATE_READY);
-spinlock_release(&thread_table_lock);
-
-    int cpu_idx = get_pcpu_idx();
-spinlock_acquire(&ready_queue_lock[cpu_idx]);
     tqueue_enqueue(NUM_IDS + cpu_idx, old_cur_pid);
-    new_cur_pid = tqueue_dequeue(NUM_IDS + cpu_idx);
-spinlock_release(&ready_queue_lock[cpu_idx]);
 
-spinlock_acquire(&thread_table_lock);
+    new_cur_pid = tqueue_dequeue(NUM_IDS + cpu_idx);
+
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
-spinlock_release(&thread_table_lock);
 
     if (old_cur_pid != new_cur_pid) {
+        // @anton-mel: release before the ctx switch
+spinlock_release(&ready_queue_lock[cpu_idx]);
         kctx_switch(old_cur_pid, new_cur_pid);
+    } else {
+spinlock_release(&ready_queue_lock[cpu_idx]);
+    }
+}
+
+/**
+ * This function keeps track of the elapsed time since the last thread switch 
+ * for each CPU. When the elapsed time reaches the defined scheduling slice 
+ * (SCHED_SLICE), it triggers a thread yield to allow another thread to run.
+ * This mechanism enables preemptive multitasking by ensuring that no single 
+ * thread monopolizes the CPU indefinitely.
+ */
+void sched_update(void) {
+    int cpu_idx = get_pcpu_idx();
+    elapsed_time[cpu_idx] += LAPIC_MS_INTR;
+    if(elapsed_time[cpu_idx] >= SCHED_SLICE) {
+        KERN_DEBUG("[CPU %d] 8253 Programmable Interval Timer\n", cpu_idx);
+        elapsed_time[cpu_idx] = 0;
+        thread_yield();
     }
 }
