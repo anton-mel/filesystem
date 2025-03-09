@@ -95,6 +95,8 @@ static int spurious_intr_handler(void)
 static int timer_intr_handler(void)
 {
     intr_eoi();
+    // @anton-mel (part2)
+    sched_update();
     return 0;
 }
 

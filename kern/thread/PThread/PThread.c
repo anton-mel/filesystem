@@ -12,7 +12,9 @@ static spinlock_t ready_queue_lock[NUM_CPUS];
 
 // @anton-mel: (part2)
 static int elapsed_time[NUM_CPUS] = {0};
-#define LAPIC_MS_INTR 1000 / LAPIC_TIMER_INTR_FREQ
+// @anton-mel: to verify part2, inclease this value
+// let's keep it 10ms for the responsiveness.
+#define LAPIC_MS_INTR 10000 / LAPIC_TIMER_INTR_FREQ
 
 void thread_init(unsigned int mbi_addr)
 {
@@ -98,7 +100,7 @@ void sched_update(void) {
     int cpu_idx = get_pcpu_idx();
     elapsed_time[cpu_idx] += LAPIC_MS_INTR;
     if(elapsed_time[cpu_idx] >= SCHED_SLICE) {
-        KERN_DEBUG("[CPU %d] 8253 Programmable Interval Timer\n", cpu_idx);
+        // KERN_DEBUG("[CPU %d] 8253 Programmable Interval Timer\n", cpu_idx);
         elapsed_time[cpu_idx] = 0;
         thread_yield();
     }
