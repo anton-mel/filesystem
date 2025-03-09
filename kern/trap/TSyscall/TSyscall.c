@@ -82,8 +82,32 @@ void sys_spawn(tf_t *tf)
     unsigned int elf_id, quota;
     void *elf_addr;
 
+    unsigned int valid_chid;
+    unsigned int curid = get_curid();
+
     elf_id = syscall_get_arg2(tf);
     quota = syscall_get_arg3(tf);
+
+    // @anton-mel: (part3) enhance the implementation of sys_spawn to 
+    // do all the argument checks in the body to detect possible 
+    // errors and set appropriate error codes, making sure any calls 
+    // to sys_spawn, under all possible arguments, never go wrong.
+
+    if(!container_can_consume(curid, quota)){
+        syscall_set_errno(tf, E_EXCEEDS_QUOTA);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    } else if(container_get_nchildren(curid) == MAX_CHILDREN){
+        syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
+        syscall_set_retval1(tf, NUM_IDS);
+    }
+
+    valid_chid = curid * MAX_CHILDREN + 1 + container_get_nchildren(curid);
+    if(valid_chid > NUM_IDS){
+        syscall_set_errno(tf, E_INVAL_CHILD_ID);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    } 
 
     switch (elf_id) {
     case 1:
@@ -128,7 +152,10 @@ void sys_produce(tf_t *tf)
 {
     unsigned int i;
     for (i = 0; i < 5; i++) {
+        // @anton-mel: given spec (part3)
+        intr_local_disable();
         KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
+        intr_local_enable();
     }
     syscall_set_errno(tf, E_SUCC);
 }
@@ -137,7 +164,10 @@ void sys_consume(tf_t *tf)
 {
     unsigned int i;
     for (i = 0; i < 5; i++) {
+        // @anton-mel: given spec (part3)
+        intr_local_disable();
         KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), i);
+        intr_local_enable();
     }
     syscall_set_errno(tf, E_SUCC);
 }
