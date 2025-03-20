@@ -21,7 +21,7 @@ void proc_start_user(void)
     set_pdir_base(cur_pid);
     last_active[cpu_idx] = cur_pid;
 
-    trap_return((void *) &uctx_pool[cur_pid]);
+    trap_return((void *)&uctx_pool[cur_pid]);
 }
 
 unsigned int proc_create(void *elf_addr, unsigned int quota)
@@ -29,9 +29,10 @@ unsigned int proc_create(void *elf_addr, unsigned int quota)
     unsigned int pid, id;
 
     id = get_curid();
-    pid = thread_spawn((void *) proc_start_user, id, quota);
+    pid = thread_spawn((void *)proc_start_user, id, quota);
 
-    if (pid != NUM_IDS) {
+    if (pid != NUM_IDS)
+    {
         elf_load(elf_addr, pid);
 
         uctx_pool[pid].es = CPU_GDT_UDATA | 3;

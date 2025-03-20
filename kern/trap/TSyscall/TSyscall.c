@@ -6,8 +6,12 @@
 #include <lib/syscall.h>
 #include <dev/intr.h>
 #include <pcpu/PCPUIntro/export.h>
+#include <lib/condvar.h>
 
 #include "import.h"
+
+// Global bounded buffer instance
+BoundedBuffer bb;
 
 static char sys_buf[NUM_IDS][PAGESIZE];
 
@@ -25,7 +29,8 @@ void sys_puts(tf_t *tf)
     str_uva = syscall_get_arg2(tf);
     str_len = syscall_get_arg3(tf);
 
-    if (!(VM_USERLO <= str_uva && str_uva + str_len <= VM_USERHI)) {
+    if (!(VM_USERLO <= str_uva && str_uva + str_len <= VM_USERHI))
+    {
         syscall_set_errno(tf, E_INVAL_ADDR);
         return;
     }
@@ -33,13 +38,18 @@ void sys_puts(tf_t *tf)
     remain = str_len;
     cur_pos = str_uva;
 
-    while (remain) {
+    lockdeb();
+
+    while (remain)
+    {
         if (remain < PAGESIZE - 1)
             nbytes = remain;
         else
             nbytes = PAGESIZE - 1;
 
-        if (pt_copyin(cur_pid, cur_pos, sys_buf[cur_pid], nbytes) != nbytes) {
+        if (pt_copyin(cur_pid, cur_pos, sys_buf[cur_pid], nbytes) != nbytes)
+        {
+            unlockdeb();
             syscall_set_errno(tf, E_MEM);
             return;
         }
@@ -50,6 +60,7 @@ void sys_puts(tf_t *tf)
         remain -= nbytes;
         cur_pos += nbytes;
     }
+    unlockdeb();
 
     syscall_set_errno(tf, E_SUCC);
 }
@@ -88,28 +99,33 @@ void sys_spawn(tf_t *tf)
     elf_id = syscall_get_arg2(tf);
     quota = syscall_get_arg3(tf);
 
-    // @anton-mel: (part3) enhance the implementation of sys_spawn to 
-    // do all the argument checks in the body to detect possible 
-    // errors and set appropriate error codes, making sure any calls 
+    // @anton-mel: (part3) enhance the implementation of sys_spawn to
+    // do all the argument checks in the body to detect possible
+    // errors and set appropriate error codes, making sure any calls
     // to sys_spawn, under all possible arguments, never go wrong.
 
-    if(!container_can_consume(curid, quota)){
+    if (!container_can_consume(curid, quota))
+    {
         syscall_set_errno(tf, E_EXCEEDS_QUOTA);
         syscall_set_retval1(tf, NUM_IDS);
         return;
-    } else if(container_get_nchildren(curid) == MAX_CHILDREN){
+    }
+    else if (container_get_nchildren(curid) == MAX_CHILDREN)
+    {
         syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
         syscall_set_retval1(tf, NUM_IDS);
     }
 
     valid_chid = curid * MAX_CHILDREN + 1 + container_get_nchildren(curid);
-    if(valid_chid > NUM_IDS){
+    if (valid_chid > NUM_IDS)
+    {
         syscall_set_errno(tf, E_INVAL_CHILD_ID);
         syscall_set_retval1(tf, NUM_IDS);
         return;
-    } 
+    }
 
-    switch (elf_id) {
+    switch (elf_id)
+    {
     case 1:
         elf_addr = _binary___obj_user_pingpong_ping_start;
         break;
@@ -127,10 +143,13 @@ void sys_spawn(tf_t *tf)
 
     new_pid = proc_create(elf_addr, quota);
 
-    if (new_pid == NUM_IDS) {
+    if (new_pid == NUM_IDS)
+    {
         syscall_set_errno(tf, E_INVAL_PID);
         syscall_set_retval1(tf, NUM_IDS);
-    } else {
+    }
+    else
+    {
         syscall_set_errno(tf, E_SUCC);
         syscall_set_retval1(tf, new_pid);
     }
@@ -151,22 +170,31 @@ void sys_yield(tf_t *tf)
 void sys_produce(tf_t *tf)
 {
     unsigned int i;
-    for (i = 0; i < 5; i++) {
-        // @anton-mel: given spec (part3)
+    for (i = 0; i < 5; i++)
+    {
+        // Produce an item (we assume value is just i)
+        BB_enqueue(&bb, i);
+
+        // Debug message inside atomic section
         intr_local_disable();
         KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
         intr_local_enable();
     }
+
     syscall_set_errno(tf, E_SUCC);
 }
 
 void sys_consume(tf_t *tf)
 {
-    unsigned int i;
-    for (i = 0; i < 5; i++) {
+    unsigned int i, val;
+    for (i = 0; i < 5; i++)
+    {
+        // Consume an item from the buffer
+        val = BB_dequeue(&bb);
+
         // @anton-mel: given spec (part3)
         intr_local_disable();
-        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), i);
+        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), val);
         intr_local_enable();
     }
     syscall_set_errno(tf, E_SUCC);

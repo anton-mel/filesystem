@@ -1,8 +1,9 @@
 #include <lib/x86.h>
 #include <lib/thread.h>
-#include <lib/spinlock.h>
 #include <lib/debug.h>
 #include <dev/lapic.h>
+#include <lib/spinlock.h>
+#include <thread/PTCBIntro/export.h>
 #include <pcpu/PCPUIntro/export.h>
 
 #include "import.h"
@@ -18,9 +19,11 @@ static int elapsed_time[NUM_CPUS] = {0};
 
 void thread_init(unsigned int mbi_addr)
 {
-    for (int i = 0; i < NUM_CPUS; i++) {
+    for (int i = 0; i < NUM_CPUS; i++)
+    {
         // @anton-mel
-        spinlock_init(&ready_queue_lock[i]);  
+        elapsed_time[i] = 0; // just to be safe...
+        spinlock_init(&ready_queue_lock[i]);
     }
 
     tqueue_init(mbi_addr);
@@ -36,17 +39,19 @@ void thread_init(unsigned int mbi_addr)
 unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
     unsigned int pid;
-    unsigned int cpu_idx = get_pcpu_idx();
+    // handle within lock...
+    // unsigned int cpu_idx = get_pcpu_idx();
 
-spinlock_acquire(&ready_queue_lock[cpu_idx]);
+    spinlock_acquire(&ready_queue_lock[get_pcpu_idx()]);
     pid = kctx_new(entry, id, quota);
 
-    if (pid != NUM_IDS) {
+    if (pid != NUM_IDS)
+    {
         tcb_set_cpu(pid, get_pcpu_idx());
         tcb_set_state(pid, TSTATE_READY);
-        tqueue_enqueue(NUM_IDS + cpu_idx, pid);
+        tqueue_enqueue(NUM_IDS + get_pcpu_idx(), pid);
     }
-spinlock_release(&ready_queue_lock[cpu_idx]);
+    spinlock_release(&ready_queue_lock[get_pcpu_idx()]);
 
     return pid;
 }
@@ -63,43 +68,83 @@ spinlock_release(&ready_queue_lock[cpu_idx]);
 void thread_yield(void)
 {
     unsigned int new_cur_pid;
-    unsigned int old_cur_pid = get_curid();
-    unsigned int cpu_idx = get_pcpu_idx();
+    unsigned int old_cur_pid;
+    // same problem...
+    // unsigned int old_cur_pid = get_curid();
+    // unsigned int cpu_idx = get_pcpu_idx();
 
+    // check here
     // @anton-mel: failed if held before ctx switch
-int is_already_aquired = spinlock_try_acquire(&ready_queue_lock[cpu_idx]);
-    if (is_already_aquired == 1) {
+    int is_already_aquired = spinlock_try_acquire(&ready_queue_lock[get_pcpu_idx()]);
+
+    if (is_already_aquired == 1)
+    {
         return;
     }
 
-    tcb_set_state(old_cur_pid, TSTATE_READY);
-    tqueue_enqueue(NUM_IDS + cpu_idx, old_cur_pid);
+    old_cur_pid = get_curid();
 
-    new_cur_pid = tqueue_dequeue(NUM_IDS + cpu_idx);
+    tcb_set_state(old_cur_pid, TSTATE_READY);
+    tqueue_enqueue(NUM_IDS + get_pcpu_idx(), old_cur_pid);
+
+    new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
 
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
 
-    if (old_cur_pid != new_cur_pid) {
+    spinlock_release(&ready_queue_lock[get_pcpu_idx()]);
+
+    if (old_cur_pid != new_cur_pid)
+    {
         // @anton-mel: release before the ctx switch
-spinlock_release(&ready_queue_lock[cpu_idx]);
         kctx_switch(old_cur_pid, new_cur_pid);
-    } else {
-spinlock_release(&ready_queue_lock[cpu_idx]);
     }
 }
 
+// @anton-mel: HELPER FUNCTIONS [PART 4]
+// ------------------------------------------------ //
+void thread_suspend(spinlock_t *lk, unsigned int prev_pid)
+{
+    unsigned int next_pid;
+    spinlock_acquire(&ready_queue_lock[get_pcpu_idx()]);
+    KERN_ASSERT(prev_pid == get_curid());
+
+    next_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
+    KERN_ASSERT(next_pid != NUM_IDS);
+
+    spinlock_release(lk);
+
+    tcb_set_state(prev_pid, TSTATE_SLEEP); // Suspend current thread
+    tcb_set_state(next_pid, TSTATE_RUN);   // Set next thread to running
+    set_curid(next_pid);
+
+    spinlock_release(&ready_queue_lock[get_pcpu_idx()]);
+
+    kctx_switch(prev_pid, next_pid);
+}
+
+void thread_ready(unsigned int pid)
+{
+    spinlock_acquire(&ready_queue_lock[tcb_get_cpu(pid)]);
+    tcb_set_state(pid, TSTATE_READY);                // Set thread to ready state
+    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid); // Add thread to ready queue
+    spinlock_release(&ready_queue_lock[tcb_get_cpu(pid)]);
+}
+// ------------------------------------------------ //
+
 /**
- * This function keeps track of the elapsed time since the last thread switch 
- * for each CPU. When the elapsed time reaches the defined scheduling slice 
+ * This function keeps track of the elapsed time since the last thread switch
+ * for each CPU. When the elapsed time reaches the defined scheduling slice
  * (SCHED_SLICE), it triggers a thread yield to allow another thread to run.
- * This mechanism enables preemptive multitasking by ensuring that no single 
+ * This mechanism enables preemptive multitasking by ensuring that no single
  * thread monopolizes the CPU indefinitely.
  */
-void sched_update(void) {
+void sched_update(void)
+{
     int cpu_idx = get_pcpu_idx();
     elapsed_time[cpu_idx] += LAPIC_MS_INTR;
-    if(elapsed_time[cpu_idx] >= SCHED_SLICE) {
+    if (elapsed_time[cpu_idx] >= SCHED_SLICE)
+    {
         // KERN_DEBUG("[CPU %d] 8253 Programmable Interval Timer\n", cpu_idx);
         elapsed_time[cpu_idx] = 0;
         thread_yield();

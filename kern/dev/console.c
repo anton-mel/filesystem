@@ -11,7 +11,8 @@
 #define BUFLEN 1024
 static char linebuf[BUFLEN];
 
-struct {
+struct
+{
     char buf[CONSOLE_BUFFER_SIZE];
     uint32_t rpos, wpos;
 } cons;
@@ -35,7 +36,8 @@ void cons_intr(int (*proc)(void))
 
     spinlock_acquire(&console_lock);
 
-    while ((c = (*proc)()) != -1) {
+    while ((c = (*proc)()) != -1)
+    {
         if (c == 0)
             continue;
         cons.buf[cons.wpos++] = c;
@@ -51,19 +53,21 @@ char cons_getc(void)
 {
     int c;
 
-    spinlock_acquire(&console_lock);
-
     // poll for any pending input characters,
     // so that this function works even when interrupts are disabled
     // (e.g., when called from the kernel monitor).
     serial_intr();
     keyboard_intr();
+    spinlock_acquire(&console_lock);
 
     // grab the next character from the input buffer.
-    if (cons.rpos != cons.wpos) {
+    if (cons.rpos != cons.wpos)
+    {
         c = cons.buf[cons.rpos++];
         if (cons.rpos == CONSOLE_BUFFER_SIZE)
             cons.rpos = 0;
+
+        spinlock_release(&console_lock);
         return c;
     }
 
@@ -76,7 +80,6 @@ char cons_getc(void)
 void cons_putc(char c)
 {
     serial_putc(c);
-
     spinlock_acquire(&console_lock);
     video_putc(c);
     spinlock_release(&console_lock);
@@ -88,7 +91,7 @@ char getchar(void)
 
     // @anton-mel: already locked within
     while ((c = cons_getc()) == 0)
-        /* do nothing */ ;
+        /* do nothing */;
     return c;
 }
 
@@ -106,27 +109,29 @@ char *readline(const char *prompt)
         dprintf("%s", prompt);
 
     i = 0;
-    
-    spinlock_acquire(&console_lock);
-    
-    while (1) {
+
+    while (1)
+    {
         c = getchar();
-        if (c < 0) {
+        if (c < 0)
+        {
             dprintf("read error: %e\n", c);
-            // @anton-mel: release before returning
-            spinlock_release(&console_lock); 
             return NULL;
-        } else if ((c == '\b' || c == '\x7f') && i > 0) {
+        }
+        else if ((c == '\b' || c == '\x7f') && i > 0)
+        {
             putchar('\b');
             i--;
-        } else if (c >= ' ' && i < BUFLEN - 1) {
+        }
+        else if (c >= ' ' && i < BUFLEN - 1)
+        {
             putchar(c);
             linebuf[i++] = c;
-        } else if (c == '\n' || c == '\r') {
+        }
+        else if (c == '\n' || c == '\r')
+        {
             putchar('\n');
             linebuf[i] = 0;
-            // @anton-mel: release before returning
-            spinlock_release(&console_lock);
             return linebuf;
         }
     }

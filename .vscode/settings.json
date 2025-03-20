@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "system_error": "cpp",
+        "cstdarg": "c",
+        "debug.h": "c",
+        "import.h": "c",
+        "lapic.h": "c",
+        "string.h": "c",
+        "export.h": "c"
+    }
+}

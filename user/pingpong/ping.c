@@ -12,7 +12,8 @@ int main(int argc, char **argv)
         produce();
 
     // slow producing
-    for (i = 0; i < 40; i++) {
+    for (i = 0; i < 40; i++)
+    {
         if (i % 4 == 0)
             produce();
     }

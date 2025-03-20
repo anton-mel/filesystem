@@ -17,8 +17,9 @@ static void trap_dump(tf_t *tf)
     if (tf == NULL)
         return;
 
-    uintptr_t base = (uintptr_t) tf;
+    uintptr_t base = (uintptr_t)tf;
 
+    lockdeb();
     KERN_DEBUG("trapframe at %x\n", base);
     KERN_DEBUG("\t%08x:\tedi:   \t\t%08x\n", &tf->regs.edi, tf->regs.edi);
     KERN_DEBUG("\t%08x:\tesi:   \t\t%08x\n", &tf->regs.esi, tf->regs.esi);
@@ -37,6 +38,7 @@ static void trap_dump(tf_t *tf)
     KERN_DEBUG("\t%08x:\teflags:\t\t%08x\n", &tf->eflags, tf->eflags);
     KERN_DEBUG("\t%08x:\tesp:   \t\t%08x\n", &tf->esp, tf->esp);
     KERN_DEBUG("\t%08x:\tss:    \t\t%08x\n", &tf->ss, tf->ss);
+    unlockdeb();
 }
 
 void default_exception_handler(tf_t *tf)
@@ -63,13 +65,15 @@ void pgflt_handler(tf_t *tf)
     // KERN_DEBUG("Page fault: VA 0x%08x, errno 0x%08x, process %d, EIP 0x%08x.\n",
     //            fault_va, errno, cur_pid, uctx_pool[cur_pid].eip);
 
-    if (errno & PFE_PR) {
+    if (errno & PFE_PR)
+    {
         KERN_PANIC("Permission denied: va = 0x%08x, errno = 0x%08x.\n",
                    fault_va, errno);
         return;
     }
 
-    if (alloc_page(cur_pid, fault_va, PTE_W | PTE_U | PTE_P) == MagicNumber) {
+    if (alloc_page(cur_pid, fault_va, PTE_W | PTE_U | PTE_P) == MagicNumber)
+    {
         KERN_PANIC("Page allocation failed: va = 0x%08x, errno = 0x%08x.\n",
                    fault_va, errno);
     }
@@ -112,7 +116,8 @@ static int default_intr_handler(void)
  */
 void interrupt_handler(tf_t *tf)
 {
-    switch (tf->trapno) {
+    switch (tf->trapno)
+    {
     case T_IRQ0 + IRQ_SPURIOUS:
         spurious_intr_handler();
         break;
@@ -136,19 +141,22 @@ void trap(tf_t *tf)
 
     if (last_pid != 0)
     {
-        set_pdir_base(0);  // switch to the kernel's page table
+        set_pdir_base(0); // switch to the kernel's page table
         last_active[cpu_idx] = 0;
     }
 
     handler = TRAP_HANDLER[get_pcpu_idx()][tf->trapno];
 
-    if (handler) {
+    if (handler)
+    {
         handler(tf);
-    } else {
+    }
+    else
+    {
         KERN_WARN("No handler for user trap 0x%x, process %d, eip 0x%08x.\n",
                   tf->trapno, cur_pid, tf->eip);
     }
-    
+
     if (last_pid != 0)
     {
         kstack_switch(cur_pid);
@@ -156,5 +164,5 @@ void trap(tf_t *tf)
         last_active[cpu_idx] = last_pid;
     }
 
-    trap_return((void *) tf);
+    trap_return((void *)tf);
 }

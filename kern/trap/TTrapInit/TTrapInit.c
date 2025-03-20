@@ -2,13 +2,20 @@
 #include <lib/debug.h>
 #include <lib/string.h>
 #include <dev/intr.h>
+#include <lib/condvar.h>
 #include "import.h"
 
-#define KERN_INFO_CPU(str, idx) \
-    if (idx == 0) KERN_INFO("[BSP KERN] " str); \
-    else KERN_INFO("[AP%d KERN] " str, idx);
+#define KERN_INFO_CPU(str, idx)       \
+    if (idx == 0)                     \
+        KERN_INFO("[BSP KERN] " str); \
+    else                              \
+        KERN_INFO("[AP%d KERN] " str, idx);
 
 int inited = FALSE;
+
+// @anton-mel: Import TTrapHanlder globals
+extern BoundedBuffer bb;
+extern unsigned int last_active[NUM_CPUS];
 
 trap_cb_t TRAP_HANDLER[NUM_CPUS][256];
 
@@ -30,7 +37,8 @@ void trap_handler_register(int cpu_idx, int trapno, trap_cb_t cb)
 
 void trap_init(unsigned int cpu_idx)
 {
-    if (cpu_idx == 0) {
+    if (cpu_idx == 0)
+    {
         trap_init_array();
     }
 
@@ -64,24 +72,32 @@ void trap_init(unsigned int cpu_idx)
 
     /* (32 ~ 47) ISA interrupts: used by i8259 */
     /* (48 ~ 55) reserved for IOAPIC extended interrupts */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_TIMER, interrupt_handler);      /* 8253 Programmable Interval Timer (PIT) => dispatched within */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_KBD, interrupt_handler);        /* Keyboard interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SLAVE, interrupt_handler);      /* cascaded to slave 8259 */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SERIAL24, interrupt_handler);   /* Serial (COM2 and COM4) interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SERIAL13, interrupt_handler);   /* Serial (COM1 and COM4) interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_LPT2, interrupt_handler);       /* Parallel (LPT2) interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_FLOPPY, interrupt_handler);     /* Floppy interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SPURIOUS, interrupt_handler);   /* Spurious interrupt or LPT1 interrupt   => dispatched within */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_RTC, interrupt_handler);        /* RTC interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_MOUSE, interrupt_handler);      /* Mouse interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_COPROCESSOR, interrupt_handler);/* Math coprocessor interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_IDE1, interrupt_handler);       /* IDE disk controller 1 interrupt */
-    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_IDE2, interrupt_handler);       /* IDE disk controller 2 interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_TIMER, interrupt_handler);       /* 8253 Programmable Interval Timer (PIT) => dispatched within */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_KBD, interrupt_handler);         /* Keyboard interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SLAVE, interrupt_handler);       /* cascaded to slave 8259 */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SERIAL24, interrupt_handler);    /* Serial (COM2 and COM4) interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SERIAL13, interrupt_handler);    /* Serial (COM1 and COM4) interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_LPT2, interrupt_handler);        /* Parallel (LPT2) interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_FLOPPY, interrupt_handler);      /* Floppy interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_SPURIOUS, interrupt_handler);    /* Spurious interrupt or LPT1 interrupt   => dispatched within */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_RTC, interrupt_handler);         /* RTC interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_MOUSE, interrupt_handler);       /* Mouse interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_COPROCESSOR, interrupt_handler); /* Math coprocessor interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_IDE1, interrupt_handler);        /* IDE disk controller 1 interrupt */
+    trap_handler_register(cpu_idx, T_IRQ0 + IRQ_IDE2, interrupt_handler);        /* IDE disk controller 2 interrupt */
 
     /* (48) System Call interrupt */
     trap_handler_register(cpu_idx, T_SYSCALL, syscall_dispatch); // dispatched within
 
     KERN_INFO_CPU("Done.\n", cpu_idx);
+
+    // Init BB
+    if (cpu_idx == 0)
+    {
+        BB_init(&bb);
+    }
+    last_active[cpu_idx] = 0;
+
     KERN_INFO_CPU("Enabling interrupts...\n", cpu_idx);
 
     /* enable interrupts */
