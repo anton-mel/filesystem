@@ -10,15 +10,15 @@ Debug with gdb: make qemu-gdb / make qemu-nox-gdb
 3. brief description of what you have implemented
 4. and anything else you would like us to know -->
 
-# Lab 4: Multicore and Preemption
+# 🧪 Lab 4: Multicore and Preemption
 
 In the first part of this lab, we add multiprocessor support to mCertiKOS. Next, we implement a preemptive scheduler, and make some designated parts of the kernel preemtable by turning on interrupts during those parts of kernel code. Last, we designed and implemented the producer-consumer problem (also known as the bounded-buffer problem) with shared objects and condition variables.
 
-## Team: Anton Melnychuk and Oliver Li
+## 👥 Team: Anton Melnychuk and Oliver Li
 
 Everyone contributed equally to the assignment.
 
-### Workload Distribution
+### 📋 Workload Distribution
 
 | Name           | Tasks                                                          |
 |----------------|----------------------------------------------------------------|
@@ -27,4 +27,35 @@ Everyone contributed equally to the assignment.
 |                | - Part 1: Multicore Support (Exercise 3-5)                     |
 |                | - Part 2: Preemptive Multitasking (Exercise 6)                 |
 |                | - Part 3: Preempting Kernel Execution (Exercise 7, 8, 10)      |
+|                | - Part 4: The Producer-Consumer Problem                        |
 | Oliver Li      | - Read Chapter 5 [Synchronizing Access to Shared Objects]      |
+
+### 🛠️ How to Run
+
+This assignment is organized into four parts, each located in a separate branch: `lab4part1`, `lab4part2`, `lab4part3`, and `lab4part4`. To view the implementation of a specific part, please switch to the corresponding branch.
+
+To see the output of the final part, run:
+
+```sh
+make && make qemu-nox
+```
+
+Refer to the screenshot below for the expected output.
+
+### ✅ Final Results
+
+![Final Output](./static/proof.png)
+
+Absolutely — here's your **Final Results** section with a clear and polished note added underneath the image:
+
+---
+
+### ✅ Final Results
+
+![Final Output](./static/proof.png)
+
+There are two producer and two consumer processes launched in `kern/init.c`, along with an idle process for each CPU. This results in a total of **six processes** that the scheduler preempts and manages over 2 CPUs. I aimed to optimize the system by putting the idle thread to sleep until the producer-consumer tasks finished, but due to limitations in the OS (aka, lack of proper synchronization and wake-up hooks for the userspace), so I’ve deferred this optimization for future work.
+
+At the end of execution, we can observe that the **bounded buffer is completely free**, which confirms correct behavior — since we have a balanced number of system calls for both production and consumption. If one side had an imbalance, it would result in a stuck state, with one thread waiting indefinitely. The output screenshot matches the expected results from the assignment: the number of producer/consumer processes created equals the number exited, indicating successful completion **without deadlocks or race conditions**.
+
+There are occasional slowdowns in behavior, but I suspect they are unrelated to the core correctness of the producer-consumer implementation and thus considered out of scope for this assignment.
