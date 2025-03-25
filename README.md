@@ -46,14 +46,6 @@ Refer to the screenshot below for the expected output.
 
 ![Final Output](./static/proof.png)
 
-Absolutely — here's your **Final Results** section with a clear and polished note added underneath the image:
-
----
-
-### ✅ Final Results
-
-![Final Output](./static/proof.png)
-
 There are two producer and two consumer processes launched in `kern/init.c`, along with an idle process for each CPU. This results in a total of **six processes** that the scheduler preempts and manages over 2 CPUs. I aimed to optimize the system by putting the idle thread to sleep until the producer-consumer tasks finished, but due to limitations in the OS (aka, lack of proper synchronization and wake-up hooks for the userspace), so I’ve deferred this optimization for future work.
 
 At the end of execution, we can observe that the **bounded buffer is completely free**, which confirms correct behavior — since we have a balanced number of system calls for both production and consumption. If one side had an imbalance, it would result in a stuck state, with one thread waiting indefinitely. The output screenshot matches the expected results from the assignment: the number of producer/consumer processes created equals the number exited, indicating successful completion **without deadlocks or race conditions**.
