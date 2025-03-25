@@ -80,9 +80,9 @@ char cons_getc(void)
 void cons_putc(char c)
 {
     serial_putc(c);
-    spinlock_acquire(&console_lock);
+    // spinlock_acquire(&console_lock);
     video_putc(c);
-    spinlock_release(&console_lock);
+    // spinlock_release(&console_lock);
 }
 
 char getchar(void)

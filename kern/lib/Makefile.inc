@@ -15,6 +15,8 @@ KERN_SRCFILES += $(KERN_DIR)/lib/elf.c
 KERN_SRCFILES += $(KERN_DIR)/lib/kstack.c
 KERN_SRCFILES += $(KERN_DIR)/lib/spinlock.c
 KERN_SRCFILES += $(KERN_DIR)/lib/reentrant_lock.c
+
+# Our new consumer-producer library
 KERN_SRCFILES += $(KERN_DIR)/lib/condvar.c
 
 $(KERN_OBJDIR)/lib/%.o: $(KERN_DIR)/lib/%.c

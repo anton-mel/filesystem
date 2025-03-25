@@ -22,8 +22,8 @@ void thread_init(unsigned int mbi_addr)
     for (int i = 0; i < NUM_CPUS; i++)
     {
         // @anton-mel
-        elapsed_time[i] = 0; // just to be safe...
         spinlock_init(&ready_queue_lock[i]);
+        elapsed_time[i] = 0; // just to be safe...
     }
 
     tqueue_init(mbi_addr);
@@ -101,37 +101,6 @@ void thread_yield(void)
     }
 }
 
-// @anton-mel: HELPER FUNCTIONS [PART 4]
-// ------------------------------------------------ //
-void thread_suspend(spinlock_t *lk, unsigned int prev_pid)
-{
-    unsigned int next_pid;
-    spinlock_acquire(&ready_queue_lock[get_pcpu_idx()]);
-    KERN_ASSERT(prev_pid == get_curid());
-
-    next_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
-    KERN_ASSERT(next_pid != NUM_IDS);
-
-    spinlock_release(lk);
-
-    tcb_set_state(prev_pid, TSTATE_SLEEP); // Suspend current thread
-    tcb_set_state(next_pid, TSTATE_RUN);   // Set next thread to running
-    set_curid(next_pid);
-
-    spinlock_release(&ready_queue_lock[get_pcpu_idx()]);
-
-    kctx_switch(prev_pid, next_pid);
-}
-
-void thread_ready(unsigned int pid)
-{
-    spinlock_acquire(&ready_queue_lock[tcb_get_cpu(pid)]);
-    tcb_set_state(pid, TSTATE_READY);                // Set thread to ready state
-    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid); // Add thread to ready queue
-    spinlock_release(&ready_queue_lock[tcb_get_cpu(pid)]);
-}
-// ------------------------------------------------ //
-
 /**
  * This function keeps track of the elapsed time since the last thread switch
  * for each CPU. When the elapsed time reaches the defined scheduling slice
@@ -149,4 +118,34 @@ void sched_update(void)
         elapsed_time[cpu_idx] = 0;
         thread_yield();
     }
+}
+
+// ------------------------------------------------ //
+//     @anton-mel: Helper Functions [PART 4]        //
+// ------------------------------------------------ //
+
+void thread_suspend(spinlock_t *lk, unsigned int prev_pid)
+{
+    unsigned int next_pid;
+    int cpu_idx = get_pcpu_idx();
+    spinlock_acquire(&ready_queue_lock[get_pcpu_idx()]);
+    next_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
+    // DEBUG: This should be != NUM_IDS.
+    // KERN_DEBUG("[CPU %d] next_pid: %d\n", cpu_idx, next_pid);
+    spinlock_release(lk);
+
+    tcb_set_state(prev_pid, TSTATE_SLEEP);              // Suspend current thread
+    tcb_set_state(next_pid, TSTATE_RUN);                // Set next thread to running
+    set_curid(next_pid);
+
+    spinlock_release(&ready_queue_lock[get_pcpu_idx()]);
+    kctx_switch(prev_pid, next_pid);
+}
+
+void thread_ready(unsigned int pid)
+{
+    spinlock_acquire(&ready_queue_lock[tcb_get_cpu(pid)]);
+    tcb_set_state(pid, TSTATE_READY);                   // Set thread to ready state
+    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);    // Add thread to ready queue
+    spinlock_release(&ready_queue_lock[tcb_get_cpu(pid)]);
 }

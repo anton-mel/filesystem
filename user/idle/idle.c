@@ -3,8 +3,11 @@
 #include <syscall.h>
 #include <x86.h>
 
+
 int main(int argc, char **argv)
 {
-    while (1) {}
+    while (1) {
+        yield();
+    }
     return 0;
 }

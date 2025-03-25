@@ -91,7 +91,7 @@ reentrantlock_acquire(&debug_lock);
     vdprintf(fmt, ap);
     va_end(ap);
 
-debug_trace(read_ebp(), eips);
+    debug_trace(read_ebp(), eips);
     for (i = 0; i < DEBUG_TRACEFRAMES && eips[i] != 0; i++)
         dprintf("\tfrom 0x%08x\n", eips[i]);
 

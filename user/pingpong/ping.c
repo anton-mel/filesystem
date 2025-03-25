@@ -18,5 +18,7 @@ int main(int argc, char **argv)
             produce();
     }
 
+    // Add for Clarity (Produce Task is Completed).
+    printf("\033[1;33mPRODUCER EXITED! [POSSIBLY LAST LINE]\033[0m\n");
     return 0;
 }

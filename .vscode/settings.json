@@ -7,6 +7,14 @@
         "import.h": "c",
         "lapic.h": "c",
         "string.h": "c",
-        "export.h": "c"
+        "export.h": "c",
+        "mutex": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "ranges": "c",
+        "utility": "c",
+        "condvar.h": "c",
+        "spinlock.h": "c"
     }
 }

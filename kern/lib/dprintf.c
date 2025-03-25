@@ -41,9 +41,8 @@ static void putch(int ch, struct dprintbuf *b)
 // @anton-mel: lock inside
 int vdprintf(const char *fmt, va_list ap)
 {
-    struct dprintbuf b;
-
 lockdeb();
+    struct dprintbuf b;
 
     b.idx = 0;
     b.cnt = 0;

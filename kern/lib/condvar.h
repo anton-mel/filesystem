@@ -14,11 +14,12 @@ typedef struct
 {
     unsigned int queue[NUM_IDS];
     unsigned int tail;
+    unsigned int head;
 } CV;
 
 typedef struct
 {
-#define BUFFER_CAPACITY 3
+#define BUFFER_CAPACITY 5
     unsigned int buf[BUFFER_CAPACITY];
     unsigned int head;
     unsigned int size;
@@ -33,10 +34,11 @@ void CV_signal(CV *cv);
 void CV_broadcast(CV *cv);
 
 void BB_init(BoundedBuffer *bb);
-bool BB_is_empty(const BoundedBuffer *bb);
-bool BB_is_full(const BoundedBuffer *bb);
 void BB_enqueue(BoundedBuffer *bb, unsigned int val);
 unsigned int BB_dequeue(BoundedBuffer *bb);
+
+bool is_BB_empty(const BoundedBuffer *bb);
+bool is_BB_full(const BoundedBuffer *bb);
 
 #endif /* _KERN_ */
 
