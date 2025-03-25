@@ -43,7 +43,7 @@ make && make qemu-nox
 Refer to the screenshot below for the expected output.
 
 > [!NOTE]
-> If the kernel panics in th initialization stage, this error is not related to this solution and was present in the starter code. Read https://edstem.org/us/courses/72435/discussion/6421756 post.
+> If the kernel occasionally panics in th initialization stage, this error is not related to this solution and was present in the starter code. Read https://edstem.org/us/courses/72435/discussion/6421756 post.
 
 ### ✅ Final Results
 
