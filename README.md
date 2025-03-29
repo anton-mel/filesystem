@@ -29,6 +29,7 @@ Everyone contributed equally to the assignment.
 |                | - Part 3: Preempting Kernel Execution (Exercise 7, 8, 10)      |
 |                | - Part 4: The Producer-Consumer Problem                        |
 | Oliver Li      | - Read Chapter 5 [Synchronizing Access to Shared Objects]      |
+|                | - Part 4: The Producer-Consumer Problem                        |
 
 ### 🛠️ How to Run
 
