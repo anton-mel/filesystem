@@ -10,6 +10,8 @@
 
 #include "import.h"
 
+// Here we go, note instead of having the global variables like 
+// in the presentation, we decided to encapsulate it inside the BB.
 // Global bounded buffer instance
 BoundedBuffer bb;
 
