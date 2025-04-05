@@ -16,7 +16,8 @@ unsigned int get_curid(void);
 void set_curid(unsigned int curid);
 
 void tcb_set_cpu(unsigned int pid, unsigned int cpu);
+void tcb_set_chan(unsigned int pid, void *state);
 
-#endif  /* _KERN_ */
+#endif /* _KERN_ */
 
-#endif  /* !_KERN_THREAD_PTHREAD_H_ */
+#endif /* !_KERN_THREAD_PTHREAD_H_ */

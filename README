@@ -1,14 +1,44 @@
-Compile: make / make all
+<!-- Compile: make / make all
 Run tests: make clean && make TEST=1
 Run in qemu: make qemu / make qemu-nox
 Debug with gdb: make qemu-gdb / make qemu-nox-gdb
-                (in another terminal) gdb
+                (in another terminal) gdb -->
 
-To use your solutions from lab 1: git merge lab1
-To use sample lab 1 solutions: copy files in samples/ to appropriate directories
-
-List here the following info:
+<!-- List here the following info:
 1. who you have worked with
 2. whether you coded this assignment together, and if not, who worked on which part
 3. brief description of what you have implemented
-4. and anything else you would like us to know
+4. and anything else you would like us to know -->
+
+# 🧪 Lab 5: File Systems
+
+In this lab, we add the file system support to mCertiKOS. We have already implemented an IDE disk driver and some parts of the file system to stast with. We will extend the mCertiKOS scheduler with the ability to make threads sleep and wake threads up; this is necessary for the implementation of a more efficient file system. Then we are asked to implement various parts of the file system across multiple abstraction layers.
+
+## 👥 Team: Anton Melnychuk and Oliver Li
+
+### 📋 Workload Distribution
+
+Add the thoughts about the team collabortion later.
+
+| Name           | Tasks                                                          |
+|----------------|----------------------------------------------------------------|
+| Anton Melnychuk| - Read Chapter 6 [xv6 book] (Exercise 1)                       |
+|                | - Part 1: Scheduler Support (Exercise 2-3)                     |
+| Oliver Li      | - Read Chapter 6 [xv6 book] (Exercise 1)                       |
+
+### 🛠️ How to Run
+
+This assignment is organized into four parts, each located in a separate branch: `lab5part1`, `lab5part2`, `lab5part3`, and `lab5part4`. To view the implementation of a specific part, please switch to the corresponding branch.
+
+To see the output of the final part, run:
+
+```sh
+make && make qemu-nox
+```
+
+Refer to the screenshot below for the expected output.
+
+
+### ✅ Final Results
+
+Add screenshot and description here.
