@@ -140,10 +140,10 @@ void thread_sleep(void *chan, spinlock_t *lk)
     // We should just panic:
     KERN_ASSERT(new_cur_pid != NUM_IDS);
 
+    set_curid(new_cur_pid);
     tcb_set_state(old_cur_pid, TSTATE_SLEEP);
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     tcb_set_chan(old_cur_pid, chan);
-    set_curid(new_cur_pid);
 
     // TODO: Context switch.
     spinlock_release(&sched_lk);
@@ -173,12 +173,14 @@ void thread_wakeup(void *chan)
     spinlock_acquire(&sched_lk);
     for (new_cur_pid = 0; new_cur_pid < NUM_IDS; new_cur_pid++)
     {
-        if (tcb_get_chan(new_cur_pid) == chan)
+        if (tcb_get_state(new_cur_pid) == TSTATE_SLEEP &&
+            tcb_get_chan(new_cur_pid) == chan)
         {
             old_cur_pid = get_curid();
             KERN_DEBUG("thread_wakeup: caller pid= %d, calle pid=%d, chan=%p\n", old_cur_pid, new_cur_pid, chan);
             tcb_set_state(new_cur_pid, TSTATE_READY);
             tqueue_enqueue(NUM_IDS, new_cur_pid);
+            tcb_set_chan(new_cur_pid, (void *)0);
         }
     }
     spinlock_release(&sched_lk);

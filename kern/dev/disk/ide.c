@@ -25,7 +25,8 @@ static int ide_wait(int checkerr)
 {
     int r;
 
-    while (((r = inb(0x1f7)) & (IDE_BSY | IDE_DRDY)) != IDE_DRDY);
+    while (((r = inb(0x1f7)) & (IDE_BSY | IDE_DRDY)) != IDE_DRDY)
+        ;
     if (checkerr && (r & (IDE_DF | IDE_ERR)) != 0)
         return -1;
     return 0;
@@ -42,8 +43,10 @@ void ide_init(void)
 
     // Check if disk 1 is present
     outb(0x1f6, 0xe0 | (1 << 4));
-    for (i = 0; i < 1000; i++) {
-        if (inb(0x1f7) != 0) {
+    for (i = 0; i < 1000; i++)
+    {
+        if (inb(0x1f7) != 0)
+        {
             havedisk1 = 1;
             break;
         }
@@ -54,7 +57,7 @@ void ide_init(void)
 }
 
 /**
- * Start the request for b.  Caller must hold ide_lk.
+ * Start the request for b. Caller must hold ide_lk.
  */
 static void ide_start(struct buf *b)
 {
@@ -62,16 +65,19 @@ static void ide_start(struct buf *b)
         KERN_PANIC("ide_start");
 
     ide_wait(0);
-    outb(0x3f6, 0);  // generate interrupt
-    outb(0x1f2, 1);  // number of sectors
+    outb(0x3f6, 0); // generate interrupt
+    outb(0x1f2, 1); // number of sectors
     outb(0x1f3, b->sector & 0xff);
     outb(0x1f4, (b->sector >> 8) & 0xff);
     outb(0x1f5, (b->sector >> 16) & 0xff);
     outb(0x1f6, 0xe0 | ((b->dev & 1) << 4) | ((b->sector >> 24) & 0x0f));
-    if (b->flags & B_DIRTY) {
+    if (b->flags & B_DIRTY)
+    {
         outb(0x1f7, IDE_CMD_WRITE);
         outsl(0x1f0, b->data, 512 / 4);
-    } else {
+    }
+    else
+    {
         outb(0x1f7, IDE_CMD_READ);
     }
 }
@@ -85,7 +91,8 @@ void ide_intr(void)
 
     // First queued buffer is the active request.
     spinlock_acquire(&ide_lk);
-    if ((b = idequeue) == 0) {
+    if ((b = idequeue) == 0)
+    {
         spinlock_release(&ide_lk);
         KERN_INFO("spurious IDE interrupt\n");
         return;
@@ -137,7 +144,8 @@ void ide_rw(struct buf *b)
         ide_start(b);
 
     // Wait for request to finish.
-    while ((b->flags & (B_VALID | B_DIRTY)) != B_VALID) {
+    while ((b->flags & (B_VALID | B_DIRTY)) != B_VALID)
+    {
         thread_sleep(b, &ide_lk);
     }
 
