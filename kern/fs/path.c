@@ -40,7 +40,42 @@
 static char *skipelem(char *path, char *name)
 {
     // TODO
-    return 0;
+    if (path == NULL)
+        return (char *)0;
+
+    // Skip leading slashes
+    while (*path == '/')
+        path++;
+
+    if (*path == '\0')
+        return (char *)0;
+
+    // Identify the start and end
+    // of the next path element
+    char *start = path;
+    while (*path != '/' && *path != '\0')
+        path++;
+
+    // Copy the element into name,
+    // respecting DIRSIZ limit
+    unsigned int len = path - start;
+    if (len >= DIRSIZ)
+    {
+        strncpy(name, start, DIRSIZ - 1);
+        name[DIRSIZ - 1] = '\0';
+    }
+    else
+    {
+        strncpy(name, start, len);
+        name[len] = '\0';
+    }
+
+    // Skip trailing slashes to
+    // position at start of next element
+    while (*path == '/')
+        path++;
+
+    return path;
 }
 
 /**
@@ -55,16 +90,21 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
 
     // If path is a full path, get the pointer to the root inode. Otherwise get
     // the inode corresponding to the current working directory.
-    if (*path == '/') {
+    if (*path == '/')
+    {
         ip = inode_get(ROOTDEV, ROOTINO);
-    } else {
-        ip = inode_dup((struct inode *) tcb_get_cwd(get_curid()));
+    }
+    else
+    {
+        ip = inode_dup((struct inode *)tcb_get_cwd(get_curid()));
     }
 
-    while ((path = skipelem(path, name)) != 0) {
+    while ((path = skipelem(path, name)) != 0)
+    {
         // TODO
     }
-    if (nameiparent) {
+    if (nameiparent)
+    {
         inode_put(ip);
         return 0;
     }

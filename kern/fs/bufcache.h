@@ -46,6 +46,6 @@ void bufcache_write(struct buf *b);
  */
 void bufcache_release(struct buf *b);
 
-#endif  /* _KERN_ */
+#endif /* _KERN_ */
 
-#endif  /* !_KERN_FS_BUFCACHE_H_ */
+#endif /* !_KERN_FS_BUFCACHE_H_ */
