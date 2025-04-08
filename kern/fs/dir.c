@@ -19,9 +19,8 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
 {
     // input: dp is an inode for a current directory
     // output: poff is the address to write the found offset to
-    uint32_t off, inum;
+    uint32_t off;
     struct dirent de;
-    inum = de.inum;
 
     if (dp->type != T_DIR)
         KERN_PANIC("dir_lookup not DIR");
@@ -38,7 +37,7 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
 
         if (dir_namecmp(de.name, name) == 0)
         {
-            if (inum != 0)
+            if (de.inum != 0)
             {
                 if (poff != NULL)
                 {
@@ -47,7 +46,7 @@ struct inode *dir_lookup(struct inode *dp, char *name, uint32_t *poff)
                 // Find the inode with number inum on device dev
                 // and return the in-memory copy. Do not lock
                 // the inode and do not read it from disk.
-                return inode_get(dp->dev, inum);
+                return inode_get(dp->dev, de.inum);
             }
         }
     }
