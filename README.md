@@ -23,7 +23,12 @@ Add the thoughts about the team collabortion later.
 | Name           | Tasks                                                          |
 |----------------|----------------------------------------------------------------|
 | Anton Melnychuk| - Read Chapter 6 [xv6 book] (Exercise 1)                       |
+| Anton Melnychuk| - Part 2                                                       |
+| Anton Melnychuk| - Part 3                                                       |
 | Oliver Li      | - Read Chapter 6 [xv6 book] (Exercise 1)                       |
+| Oliver Li      | - Part 1                                                       |
+| Oliver Li      | - Part 2                                                       |
+| Oliver Li      | - Part 3                                                       |
 
 ### 🛠️ How to Run
 
