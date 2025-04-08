@@ -104,7 +104,7 @@ void thread_sleep(void *chan, spinlock_t *lk)
     unsigned int old_cur_pid;
     unsigned int new_cur_pid;
 
-    KERN_DEBUG("thread_sleep: pid = %d, chan = %p\n", get_curid(), chan);
+    // KERN_DEBUG("thread_sleep: pid = %d, chan = %p\n", get_curid(), chan);
     
     if (lk == 0)
         KERN_PANIC("sleep without lock");
@@ -154,7 +154,7 @@ void thread_wakeup(void *chan)
     unsigned int old_cur_pid = get_curid();
     for (int pid = 0; pid < NUM_IDS; pid++) {
         if (tcb_get_chan(pid) == chan && tcb_get_state(pid) == TSTATE_SLEEP) {
-            KERN_DEBUG("thread_wakeup: caller pid= %d, calle pid=%d, chan=%p\n", old_cur_pid, pid, chan);
+            // KERN_DEBUG("thread_wakeup: caller pid= %d, calle pid=%d, chan=%p\n", old_cur_pid, pid, chan);
             tcb_set_state(pid, TSTATE_RUN);
             tqueue_enqueue(NUM_IDS, pid);
         }

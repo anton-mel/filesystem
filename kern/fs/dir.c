@@ -80,6 +80,7 @@ int dir_link(struct inode *dp, char *name, uint32_t inum)
         // Caching Bugs, Misallignment, or I/O Failure would lead to panic!
         KERN_ASSERT(inode_read(dp, (char *)&de, poff, sizeof(de)) == sizeof(de));
 
+        // available?
         if (de.inum == 0)
         {
             // Found an emptry string
@@ -93,34 +94,14 @@ int dir_link(struct inode *dp, char *name, uint32_t inum)
         }
     }
     
+    // SPEC ERROR? Just always return success???
+    // I do not think we should check for the no slots available...
     de.inum = inum;
     strncpy(de.name, name, DIRSIZ);
     KERN_ASSERT(inode_write(dp, (char *)&de, poff, sizeof(de)) == sizeof(de));
     return 0;
+    
     // No empty entry found - ths should not happen
     // KERN_PANIC("dir_link: directory full, no empty slots found");
     // return -1; // Error
 }
-
-
-
-
-// for (off = 0; off < dp->size; off += sizeof(de))
-// {
-//   //move to dirent
-//   inode_read(dp, (char*)&de, off, sizeof(de));
-
-//   if (de.inum == 0)
-//   {
-//     break;
-//   }
-
-// }
-
-//   de.inum = inum;
-//   strncpy(de.name, name, DIRSIZ);
-//   inode_write(dp, (char*)&de, off, sizeof(de));
-// KERN_PANIC("ERROR IN DIR_LINK! NO EMPTY SUB_DIR ENTRY!!");
-
-
-// return 0;

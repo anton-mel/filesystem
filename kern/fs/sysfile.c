@@ -58,8 +58,8 @@ static int fdalloc(struct file *f)
 void sys_read(tf_t *tf)
 {
     spinlock_acquire(&Block);
+    
     // TODO
-
     // get args from the syscall
     int fd = syscall_get_arg2(tf);
     unsigned int user_buffer = syscall_get_arg3(tf);
@@ -81,7 +81,7 @@ void sys_read(tf_t *tf)
     }
 
     // zero kernel-side buffer before read
-    memzero(glob_buffer, sizeof(glob_buffer));
+    memzero(glob_buffer, SIZE_BUFF);
 
     // read into kernel buffer
     int bytes_read = perform_file_read(file_ptr, glob_buffer, n);
@@ -121,9 +121,9 @@ static void set_syscall_failure(tf_t *tf) {
 }
 
 // helper function to manage syscall rax
-static void set_syscall_success(tf_t *tf, int bytes_read) {
+static void set_syscall_success(tf_t *tf, int bytes) {
     syscall_set_errno(tf, E_SUCC);
-    syscall_set_retval1(tf, bytes_read);
+    syscall_set_retval1(tf, bytes);
 }
 
 /**
@@ -160,15 +160,15 @@ void sys_write(tf_t *tf)
     }
 
     // zero kernel-side buffer before write
-    memzero(glob_buffer, sizeof(glob_buffer));
+    memzero(glob_buffer, SIZE_BUFF);
 
     // copy back from user to kernel
     int copied = copy_from_user(user_buffer, n);
-    if (copied < 0) {
-        set_syscall_failure(tf);
-        spinlock_release(&Block);
-        return;
-    }
+    // if (copied < 0) {
+    //     set_syscall_failure(tf);
+    //     spinlock_release(&Block);
+    //     return;
+    // }
 
     // write to file from kernel buffer
     int written = perform_file_write(file_ptr, copied);
@@ -178,6 +178,7 @@ void sys_write(tf_t *tf)
         return;
     }
 
+    set_syscall_success(tf, written);
     spinlock_release(&Block);
 }
 
@@ -185,6 +186,11 @@ void sys_write(tf_t *tf)
 
 static bool validate_write_args(int fd, unsigned int buffer, unsigned int n) {
     if (fd < 0 || n > SIZE_BUFF ) {
+        return 0;
+    }
+    unsigned int end_of_write = buffer + n;
+    // important!!! validate write to user space
+    if (end_of_write > VM_USERHI || buffer < VM_USERLO) {
         return 0;
     }
     return 1;
