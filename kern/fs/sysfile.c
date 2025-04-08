@@ -5,16 +5,20 @@
 #include <kern/lib/pmap.h>
 #include <kern/lib/string.h>
 #include <kern/lib/trap.h>
+#include <kern/fs/sysfile.h>
 #include <kern/lib/syscall.h>
-#include <kern/thread/PTCBIntro/export.h>
+#include <kern/lib/spinlock.h>
 #include <kern/thread/PCurID/export.h>
+#include <kern/thread/PTCBIntro/export.h>
 #include <kern/trap/TSyscallArg/export.h>
 
 #include "dir.h"
 #include "path.h"
-#include "file.h"
 #include "fcntl.h"
 #include "log.h"
+
+char glob_buffer[SIZE_BUFF];
+static spinlock_t Block;
 
 /**
  * This function is not a system call handler, but an auxiliary function
@@ -27,7 +31,19 @@
 static int fdalloc(struct file *f)
 {
     // TODO
-    return -1;
+    unsigned int tid = get_curid();
+    struct file **file_table = tcb_get_openfiles(tid);
+
+    for (int fd_index = 0; fd_index < NOFILE; fd_index++)
+    {
+        if (file_table[fd_index] == NULL)
+        {
+            tcb_set_openfiles(tid, fd_index, f);
+            return fd_index;
+        }
+    }
+
+    return -1;  // No available file descriptor
 }
 
 /**
@@ -41,7 +57,73 @@ static int fdalloc(struct file *f)
  */
 void sys_read(tf_t *tf)
 {
+    spinlock_acquire(&Block);
     // TODO
+
+    // get args from the syscall
+    int fd = syscall_get_arg2(tf);
+    unsigned int user_buffer = syscall_get_arg3(tf);
+    unsigned int n = syscall_get_arg4(tf);
+
+    // validate input arguments
+    if (!validate_read_args(fd, user_buffer, n)) {
+        set_syscall_failure(tf);
+        spinlock_release(&Block);
+        return;
+    }
+
+    // resolve file pointer from current thread
+    struct file *file_ptr = tcb_get_openfiles(get_curid())[fd];
+    if (file_ptr == NULL) {
+        set_syscall_failure(tf);
+        spinlock_release(&Block);
+        return;
+    }
+
+    // zero kernel-side buffer before read
+    memzero(glob_buffer, sizeof(glob_buffer));
+
+    // read into kernel buffer
+    int bytes_read = perform_file_read(file_ptr, glob_buffer, n);
+    if (bytes_read < 0) {
+        set_syscall_failure(tf);
+        spinlock_release(&Block);
+        return;
+    }
+
+    // copy data to user space
+    int copied = copy_to_user(glob_buffer, user_buffer, bytes_read);
+    set_syscall_success(tf, copied);
+    spinlock_release(&Block);
+}
+
+/* Helper functions */
+
+static bool validate_read_args(int fd, unsigned int buffer, unsigned int n) {
+    if ( fd < 0 || n > SIZE_BUFF ) {
+        return 0;
+    }
+    return 1;
+}
+
+static int perform_file_read(struct file *file_ptr, char *kernel_buf, unsigned int n) {
+    return file_read(file_ptr, kernel_buf, n);
+}
+
+static int copy_to_user(char *kernel_buf, unsigned int user_buf, int len) {
+    return pt_copyout(kernel_buf, get_curid(), user_buf, len);
+}
+
+// helper function to manage syscall rax
+static void set_syscall_failure(tf_t *tf) {
+    syscall_set_errno(tf, E_BADF);
+    syscall_set_retval1(tf, -1);
+}
+
+// helper function to manage syscall rax
+static void set_syscall_success(tf_t *tf, int bytes_read) {
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, bytes_read);
 }
 
 /**
@@ -55,7 +137,65 @@ void sys_read(tf_t *tf)
  */
 void sys_write(tf_t *tf)
 {
+    spinlock_acquire(&Block);
     // TODO
+    // get syscall argument first
+    int fd = syscall_get_arg2(tf);
+    unsigned int user_buffer = syscall_get_arg3(tf);
+    unsigned int n = syscall_get_arg4(tf);
+
+    // basic argument checks
+    if (!validate_write_args(fd, user_buffer, n)) {
+        set_syscall_failure(tf);
+        spinlock_release(&Block);
+        return;
+    }
+
+    // resolve the file from the current TCB
+    struct file *file_ptr = tcb_get_openfiles(get_curid())[fd];
+    if (file_ptr == NULL) {
+        set_syscall_failure(tf);
+        spinlock_release(&Block);
+        return;
+    }
+
+    // zero kernel-side buffer before write
+    memzero(glob_buffer, sizeof(glob_buffer));
+
+    // copy back from user to kernel
+    int copied = copy_from_user(user_buffer, n);
+    if (copied < 0) {
+        set_syscall_failure(tf);
+        spinlock_release(&Block);
+        return;
+    }
+
+    // write to file from kernel buffer
+    int written = perform_file_write(file_ptr, copied);
+    if (written < 0) {
+        set_syscall_failure(tf);
+        spinlock_release(&Block);
+        return;
+    }
+
+    spinlock_release(&Block);
+}
+
+/* Helper functions */
+
+static bool validate_write_args(int fd, unsigned int buffer, unsigned int n) {
+    if (fd < 0 || n > SIZE_BUFF ) {
+        return 0;
+    }
+    return 1;
+}
+
+static int copy_from_user(unsigned int user_buf, unsigned int len) {
+    return pt_copyin(get_curid(), user_buf, glob_buffer, len);
+}
+
+static int perform_file_write(struct file *file_ptr, unsigned int n) {
+    return file_write(file_ptr, glob_buffer, n);
 }
 
 /**
@@ -65,6 +205,37 @@ void sys_write(tf_t *tf)
 void sys_close(tf_t *tf)
 {
     // TODO
+    // no locking since no buffer access
+    // same idea: get sys args
+    int fd = syscall_get_arg2(tf);
+
+    // validate: if closed without failure
+    if (!validate_close_fd(fd)) {
+        set_syscall_failure(tf);
+        return;
+    }
+
+    // access the file given fd for a current thread
+    struct file *file_ptr = tcb_get_openfiles(get_curid())[fd];
+    if (file_ptr == NULL) {
+        set_syscall_failure(tf);
+        return;
+    }
+
+    // remove file from open file table
+    // From ED stem: we should not remove the file itself!!!
+    tcb_set_openfiles(get_curid(), fd, NULL);
+
+    // just properly close the file
+    file_close(file_ptr);
+    // success
+    set_syscall_success(tf, 0);
+}
+
+/* Helper functions */
+
+static bool validate_close_fd(int fd) {
+    return fd >= 0;
 }
 
 /**
@@ -74,6 +245,38 @@ void sys_close(tf_t *tf)
 void sys_fstat(tf_t *tf)
 {
     // TODO
+    // no locking since no buffer access
+    // fetch
+    int fd = syscall_get_arg2(tf);
+    struct file_stat *user_stat = (struct file_stat *)syscall_get_arg3(tf);
+
+    // validate
+    if (!validate_fstat_args(fd, user_stat)) {
+        set_syscall_failure(tf);
+        return;
+    }
+
+    // access
+    struct file *file_ptr = tcb_get_openfiles(get_curid())[fd];
+    if (file_ptr == NULL) {
+        set_syscall_failure(tf);
+        return;
+    }
+
+    // get stats 
+    int result = file_stat(file_ptr, user_stat);
+    if (result != 0) {
+        set_syscall_failure(tf);
+        return;
+    }
+    set_syscall_success(tf, 0);
+}
+
+
+/* Helpers */
+
+static bool validate_fstat_args(int fd, struct file_stat *user_stat) {
+    return fd >= 0 && user_stat != NULL;
 }
 
 /**

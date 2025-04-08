@@ -11,6 +11,7 @@
 
 #include <kern/lib/types.h>
 #include <kern/lib/debug.h>
+#include <kern/lib/string.h>
 #include <kern/lib/spinlock.h>
 #include <thread/PTCBIntro/export.h>
 #include <thread/PCurID/export.h>
@@ -86,7 +87,9 @@ static char *skipelem(char *path, char *name)
  */
 static struct inode *namex(char *path, bool nameiparent, char *name)
 {
-    struct inode *ip;
+    struct inode *ip = NULL;
+    struct inode *next = NULL;
+    uint32_t offset;
 
     // If path is a full path, get the pointer to the root inode. Otherwise get
     // the inode corresponding to the current working directory.
@@ -102,6 +105,32 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
     while ((path = skipelem(path, name)) != 0)
     {
         // TODO
+        // prevent multiple access
+        inode_lock(ip);
+
+        if (ip->type != T_DIR)
+        {
+            inode_unlockput(ip);
+            return NULL;
+        }
+
+        // If looking for parent and
+        // this is the last element
+        if (nameiparent && *path == '\0')
+        {
+            inode_unlock(ip);
+            return ip;
+        }
+
+        next = dir_lookup(ip, name, &offset);
+        if (next == NULL)
+        {
+            inode_unlockput(ip);
+            return NULL;
+        }
+
+        inode_unlockput(ip);
+        ip = next;
     }
     if (nameiparent)
     {

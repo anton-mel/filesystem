@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "typeinfo": "c",
+        "istream": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "ranges": "c",
+        "utility": "c",
+        "spinlock.h": "c",
+        "intr.h": "c"
+    }
+}
