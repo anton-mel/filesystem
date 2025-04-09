@@ -9,6 +9,9 @@
         "ranges": "c",
         "utility": "c",
         "spinlock.h": "c",
-        "intr.h": "c"
+        "intr.h": "c",
+        "console.h": "c",
+        "export.h": "c",
+        "gcc.h": "c"
     }
 }

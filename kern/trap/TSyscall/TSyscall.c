@@ -3,8 +3,10 @@
 #include <lib/types.h>
 #include <lib/x86.h>
 #include <lib/trap.h>
+#include <lib/string.h>
 #include <lib/syscall.h>
 #include <dev/intr.h>
+#include <kern/dev/console.h>
 #include <pcpu/PCPUIntro/export.h>
 
 #include "import.h"
@@ -58,6 +60,7 @@ extern uint8_t _binary___obj_user_pingpong_ping_start[];
 extern uint8_t _binary___obj_user_pingpong_pong_start[];
 extern uint8_t _binary___obj_user_pingpong_ding_start[];
 extern uint8_t _binary___obj_user_fstest_fstest_start[];
+extern uint8_t _binary___obj_user_shell_shell_start[];
 
 /**
  * Spawns a new child process.
@@ -116,6 +119,9 @@ void sys_spawn(tf_t *tf)
     case 4:
         elf_addr = _binary___obj_user_fstest_fstest_start;
         break;
+    case 5:
+        elf_addr = _binary___obj_user_shell_shell_start; 
+        break;
     default:
         syscall_set_errno(tf, E_INVAL_PID);
         syscall_set_retval1(tf, NUM_IDS);
@@ -144,3 +150,19 @@ void sys_yield(tf_t *tf)
     thread_yield();
     syscall_set_errno(tf, E_SUCC);
 }
+
+void sys_readline(tf_t *tf)
+{
+    char *input = readline("$");
+    int length = strnlen(input, 1024);
+    uintptr_t user_buff = syscall_get_arg2(tf);
+    // for (int i = 0; i < length; i++) {
+    //     user_buffer[]
+    // }
+    pt_copyout(input, get_curid(), user_buff, length + 1);
+    // assert if copied fails (should not fail, so skip)
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, 0);
+    // norify interrupt for success
+}
+

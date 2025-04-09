@@ -18,6 +18,7 @@ static volatile int cpu_booted = 0;
 static volatile int all_ready = FALSE;
 
 extern uint8_t _binary___obj_user_idle_idle_start[];
+extern uint8_t _binary___obj_user_shell_shell_start[];
 
 static void kern_main(void)
 {
@@ -26,14 +27,21 @@ static void kern_main(void)
     KERN_INFO("[BSP KERN] Number of CPUs in this system: %d. \n", pcpu_ncpu());
 
     int cpu_idx = get_pcpu_idx();
-    unsigned int pid;
+    unsigned int idle_pid, shell_pid;
 
-    pid = proc_create(_binary___obj_user_idle_idle_start, 10000);
-    KERN_INFO("CPU%d: process idle %d is created.\n", cpu_idx, pid);
-    tqueue_remove(NUM_IDS, pid);
-    tcb_set_state(pid, TSTATE_RUN);
-    set_curid(pid);
-    kctx_switch(0, pid);
+    // Has to be in either case
+    idle_pid = proc_create(_binary___obj_user_idle_idle_start, 10000);
+    KERN_INFO("CPU%d: process idle %d is created.\n", cpu_idx, idle_pid);
+    tqueue_remove(NUM_IDS, idle_pid);
+    tcb_set_state(idle_pid, TSTATE_RUN);
+
+    // Create our shell process
+    shell_pid = proc_create(_binary___obj_user_shell_shell_start, 10000);
+    KERN_INFO("CPU%d: process shell %d is created.\n", cpu_idx, shell_pid);
+    tcb_set_state(shell_pid, TSTATE_RUN);
+
+    set_curid(idle_pid);
+    kctx_switch(0, idle_pid);
 
     KERN_PANIC("kern_main() should never reach here.\n");
 }

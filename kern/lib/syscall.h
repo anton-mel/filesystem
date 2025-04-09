@@ -44,6 +44,9 @@ enum __syscall_nr {
     SYS_unlink,
     SYS_stat,
 
+    // part 5
+    SYS_readline,
+
     MAX_SYSCALL_NR  /* XXX: always put it at the end of __syscall_nr */
 };
 
