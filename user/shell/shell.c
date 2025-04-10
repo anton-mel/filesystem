@@ -1,8 +1,28 @@
 /* shell.c */
 
 #include "common.h"
+#include <fstat.h>
+#include <dirent.h>
 
-char buf [SIZE_BUF];                // readline buffer
+#define SIZE_BUF 1025
+char buf [SIZE_BUF];
+
+static int ls(char *path) {
+    int fd = sys_open(path, 0); // read only
+    struct file_stat st;
+    sys_fstat(fd, &st);
+
+    struct dirent de;
+    if (st.type == T_DIR) {
+        while (sys_read(fd, (char *) &de, sizeof(de)) == sizeof(de)) {
+            printf("%s ", de.name);
+        }
+    }
+
+    sys_close(fd);
+    return 0;
+}
+
 
 // Command table
 command_entry_t commands[] = {
