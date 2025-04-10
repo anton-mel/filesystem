@@ -12,6 +12,9 @@
         "intr.h": "c",
         "console.h": "c",
         "export.h": "c",
-        "gcc.h": "c"
+        "gcc.h": "c",
+        "x86.h": "c",
+        "syscall.h": "c",
+        "sstream": "c"
     }
 }
