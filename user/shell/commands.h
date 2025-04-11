@@ -1,6 +1,9 @@
 #ifndef _USER_COMMANDS_H_
 #define _USER_COMMANDS_H_
 
+#include <file.h>
+#include <stdio.h>
+
 typedef enum {
     SH_OK = 0,
     SH_FAIL = -1,
@@ -31,9 +34,11 @@ static const status_msg_t status_messages[] = {
 status_t exec_pwd(int argc, char *argv[]);
 status_t exec_ls(int argc, char *argv[]);
 status_t exec_cd(int argc, char *argv[]);
+status_t exec_cp(int argc, char *argv[]);
 status_t exec_rm(int argc, char *argv[]);
 status_t exec_mkdir(int argc, char *argv[]);
 status_t exec_cat(int argc, char *argv[]);
 status_t exec_touch(int argc, char *argv[]);
+status_t exec_help(int argc, char *argv[]);
 
 #endif  /* _USER_COMMANDS_H_ */

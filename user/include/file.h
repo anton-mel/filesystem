@@ -59,4 +59,10 @@ struct file {
 #define T_FILE 2  // File
 #define T_DEV  3  // Device
 
+#define DIRSIZ 14
+struct dirent {
+    uint16_t inum;
+    char name[DIRSIZ];
+};
+
 #endif  /* !_USER_FILE_H_ */

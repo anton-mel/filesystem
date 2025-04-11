@@ -24,15 +24,6 @@ typedef struct {
     int min_args;
 } command_entry_t;
 
-/* Commands */
-status_t exec_pwd(int argc, char *argv[]);
-status_t exec_ls(int argc, char *argv[]);
-status_t exec_cd(int argc, char *argv[]);
-status_t exec_rm(int argc, char *argv[]);
-status_t exec_mkdir(int argc, char *argv[]);
-status_t exec_cat(int argc, char *argv[]);
-status_t exec_touch(int argc, char *argv[]);
-
 /* General Logic */
 int parse(char *line, char *argv[]);
 void print_status_error(status_t code);

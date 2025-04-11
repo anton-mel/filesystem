@@ -1,21 +1,21 @@
 /* shell.c */
 
 #include "common.h"
-#include <stdarg.h>
-#include <stdio.h>
 
 char buf [SIZE_BUF];                // readline buffer
 
 // Command table
-static command_entry_t commands[] = {
+command_entry_t commands[] = {
     // cmd      fn_ptr       min_arg
     { "ls",     exec_ls,     0 },
-    { "cd",     exec_cd,     1 },
     { "pwd",    exec_pwd,    0 },
+    { "cd",     exec_cd,     1 },
+    { "cp",     exec_cp,     2 },
     { "rm",     exec_rm,     1 },
     { "mkdir",  exec_mkdir,  1 },
     { "cat",    exec_cat,    1 },
     { "touch",  exec_touch,  1 },
+    { "help",   exec_help,   0 },
     { NULL,     NULL,        0 }
 };
 
@@ -87,4 +87,13 @@ void perror_msg(const char *fmt, ...) {
     vcprintf(fmt, args);
     printf("\033[0m\n");
     va_end(args);
+}
+
+// Print all available commands
+status_t exec_help(int argc, char *argv[]) {
+    printf("Available commands:\n");
+    for (int i = 0; commands[i].name != NULL; i++) {
+        printf("  %-6s  (min args: %d)\n", commands[i].name, commands[i].min_args);
+    }
+    return SH_OK;
 }

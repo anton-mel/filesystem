@@ -18,6 +18,7 @@
         "sstream": "c",
         "common.h": "c",
         "commands.h": "c",
-        "stdarg.h": "c"
+        "stdarg.h": "c",
+        "stdio.h": "c"
     }
 }
