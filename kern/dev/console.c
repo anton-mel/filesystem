@@ -99,8 +99,11 @@ char *readline(const char *prompt)
             dprintf("read error: %e\n", c);
             return NULL;
         } else if ((c == '\b' || c == '\x7f') && i > 0) {
-            putchar('\b');
             i--;
+            // BUG FIXED: Erase the character visually
+            putchar('\b');    // move back
+            putchar(' ');     // overwrite with space
+            putchar('\b');    // move back again
         } else if (c >= ' ' && i < BUFLEN - 1) {
             putchar(c);
             linebuf[i++] = c;

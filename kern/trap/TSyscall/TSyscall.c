@@ -153,7 +153,7 @@ void sys_yield(tf_t *tf)
 
 void sys_readline(tf_t *tf)
 {
-    char *input = readline("$>");
+    char *input = readline("$> ");
     int length = strnlen(input, 1024);
     uintptr_t user_buff = syscall_get_arg2(tf);
     // for (int i = 0; i < length; i++) {
