@@ -100,7 +100,7 @@ void sys_read(tf_t *tf)
 /* Helper functions */
 
 static bool validate_read_args(int fd, unsigned int buffer, unsigned int n) {
-    if ( fd < 0 || n > SIZE_BUFF ) {
+    if ( fd < 0 || fd >= NOFILE || n > SIZE_BUFF ) {
         return 0;
     }
     return 1;
@@ -185,7 +185,7 @@ void sys_write(tf_t *tf)
 /* Helper functions */
 
 static bool validate_write_args(int fd, unsigned int buffer, unsigned int n) {
-    if (fd < 0 || n > SIZE_BUFF ) {
+    if ( fd < 0 || fd >= NOFILE || n > SIZE_BUFF ) {
         return 0;
     }
     unsigned int end_of_write = buffer + n;
