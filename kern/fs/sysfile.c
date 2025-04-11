@@ -281,6 +281,10 @@ void sys_fstat(tf_t *tf)
 
 /* Helpers */
 
+static bool is_valid_user_buffer(uintptr_t addr, size_t len) {
+    return addr >= VM_USERLO && (addr + len) <= VM_USERHI;
+}
+
 static bool validate_fstat_args(int fd, struct file_stat *user_stat) {
     return fd >= 0 && user_stat != NULL;
 }
@@ -290,13 +294,24 @@ static bool validate_fstat_args(int fd, struct file_stat *user_stat) {
  */
 void sys_link(tf_t * tf)
 {
-    char name[DIRSIZ], new[128], old[128];
+    char name[DIRSIZ], path_new[128], path_old[128];
     struct inode *dp, *ip;
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), old, 128);
-    pt_copyin(get_curid(), syscall_get_arg3(tf), new, 128);
+    uintptr_t old_ptr = syscall_get_arg2(tf);
+    uintptr_t new_ptr = syscall_get_arg3(tf);
+    size_t old_size = syscall_get_arg4(tf);
+    size_t new_size = syscall_get_arg5(tf);
 
-    if ((ip = namei(old)) == 0) {
+    if (!check_user_buffer(tf, old_ptr, old_size, 128) || 
+        !check_user_buffer(tf, new_ptr, new_size, 128)) {
+        return;
+    }
+
+    // Copy user-provided paths into kernel memory
+    pt_copyin(get_curid(), old_ptr, path_old, old_size);
+    pt_copyin(get_curid(), new_ptr, path_new, new_size);
+
+    if ((ip = namei(path_old)) == 0) {
         syscall_set_errno(tf, E_NEXIST);
         return;
     }
@@ -315,7 +330,7 @@ void sys_link(tf_t * tf)
     inode_update(ip);
     inode_unlock(ip);
 
-    if ((dp = nameiparent(new, name)) == 0)
+    if ((dp = nameiparent(path_new, name)) == 0)
         goto bad;
     inode_lock(dp);
     if (dp->dev != ip->dev || dir_link(dp, name, ip->inum) < 0) {
@@ -338,6 +353,24 @@ bad:
     commit_trans();
     syscall_set_errno(tf, E_DISK_OP);
     return;
+}
+
+/* Helpers */
+
+static bool check_user_buffer(tf_t *tf, uintptr_t buf, size_t len, size_t maxlen) {
+    if (!is_valid_user_buffer(buf, len)) {
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        syscall_set_retval1(tf, -1);
+        return FALSE;
+    }
+
+    if (maxlen > 0 && len >= maxlen) {
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        syscall_set_retval1(tf, -1);
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 /**
@@ -364,7 +397,14 @@ void sys_unlink(tf_t *tf)
     char name[DIRSIZ], path[128];
     uint32_t off;
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
+    uintptr_t buffer = syscall_get_arg2(tf);
+    size_t length = syscall_get_arg3(tf);
+
+    if (!check_user_buffer(tf, buffer, length, 128)) {
+        return;
+    }
+
+    pt_copyin(get_curid(), buffer, path, 128);
 
     if ((dp = nameiparent(path, name)) == 0) {
         syscall_set_errno(tf, E_DISK_OP);
@@ -466,8 +506,15 @@ void sys_open(tf_t *tf)
     struct file *f;
     struct inode *ip;
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
+    uintptr_t buffer = syscall_get_arg2(tf);
     omode = syscall_get_arg3(tf);
+    size_t length = syscall_get_arg4(tf);
+
+    if (!check_user_buffer(tf, buffer, length, 128)) {
+        return;
+    } else {
+        pt_copyin(get_curid(), buffer, path, 128);
+    }
 
     if (omode & O_CREATE) {
         begin_trans();
@@ -517,7 +564,14 @@ void sys_mkdir(tf_t *tf)
     char path[128];
     struct inode *ip;
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
+    uintptr_t buffer = syscall_get_arg2(tf);
+    size_t length = syscall_get_arg3(tf);
+
+    if (!check_user_buffer(tf, buffer, length, 128)) {
+        return;
+    } else {
+        pt_copyin(get_curid(), buffer, path, 128);
+    }
 
     begin_trans();
     if ((ip = (struct inode *) create(path, T_DIR, 0, 0)) == 0) {
@@ -536,7 +590,14 @@ void sys_chdir(tf_t *tf)
     struct inode *ip;
     int pid = get_curid();
 
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, 128);
+    uintptr_t buffer = syscall_get_arg2(tf);
+    size_t length = syscall_get_arg3(tf);
+
+    if (!check_user_buffer(tf, buffer, length, 128)) {
+        return;
+    } else {
+        pt_copyin(get_curid(), buffer, path, 128);
+    }
 
     if ((ip = namei(path)) == 0) {
         syscall_set_errno(tf, E_DISK_OP);

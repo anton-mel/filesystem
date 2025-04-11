@@ -29,6 +29,7 @@ static int copy_from_user(unsigned int user_buf, unsigned int len);
 static int perform_file_write(struct file *file_ptr, unsigned int n);
 static bool validate_close_fd(int fd);
 static bool validate_fstat_args(int fd, struct file_stat *user_stat);
+static bool check_user_buffer(tf_t *tf, uintptr_t buf, size_t len, size_t maxlen);
 
 #define SIZE_BUFF 10000
 
