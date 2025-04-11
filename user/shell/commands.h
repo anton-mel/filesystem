@@ -40,5 +40,6 @@ status_t exec_mkdir(int argc, char *argv[]);
 status_t exec_cat(int argc, char *argv[]);
 status_t exec_touch(int argc, char *argv[]);
 status_t exec_help(int argc, char *argv[]);
+status_t exec_write(int argc, char *argv[]);
 
 #endif  /* _USER_COMMANDS_H_ */

@@ -402,9 +402,9 @@ void sys_unlink(tf_t *tf)
 
     if (!check_user_buffer(tf, buffer, length, 128)) {
         return;
+    } else {
+        pt_copyin(get_curid(), buffer, path, length);
     }
-
-    pt_copyin(get_curid(), buffer, path, 128);
 
     if ((dp = nameiparent(path, name)) == 0) {
         syscall_set_errno(tf, E_DISK_OP);
@@ -507,14 +507,15 @@ void sys_open(tf_t *tf)
     struct inode *ip;
 
     uintptr_t buffer = syscall_get_arg2(tf);
-    omode = syscall_get_arg3(tf);
     size_t length = syscall_get_arg4(tf);
-
+    
     if (!check_user_buffer(tf, buffer, length, 128)) {
         return;
     } else {
-        pt_copyin(get_curid(), buffer, path, 128);
+        pt_copyin(get_curid(), buffer, path, length);
     }
+    
+    omode = syscall_get_arg3(tf);
 
     if (omode & O_CREATE) {
         begin_trans();
@@ -570,7 +571,7 @@ void sys_mkdir(tf_t *tf)
     if (!check_user_buffer(tf, buffer, length, 128)) {
         return;
     } else {
-        pt_copyin(get_curid(), buffer, path, 128);
+        pt_copyin(get_curid(), buffer, path, length);
     }
 
     begin_trans();
@@ -596,7 +597,7 @@ void sys_chdir(tf_t *tf)
     if (!check_user_buffer(tf, buffer, length, 128)) {
         return;
     } else {
-        pt_copyin(get_curid(), buffer, path, 128);
+        pt_copyin(get_curid(), buffer, path, length);
     }
 
     if ((ip = namei(path)) == 0) {

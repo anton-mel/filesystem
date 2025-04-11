@@ -15,6 +15,7 @@ command_entry_t commands[] = {
     { "mkdir",  exec_mkdir,  1 },
     { "cat",    exec_cat,    1 },
     { "touch",  exec_touch,  1 },
+    { "write",  exec_write,  1 },
     { "help",   exec_help,   0 },
     { NULL,     NULL,        0 }
 };

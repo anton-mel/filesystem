@@ -55,6 +55,7 @@ struct file {
 #define mkdir(path)       sys_mkdir((path))
 #define chdir(path)       sys_chdir((path))
 
+#define T_NONE 0  // Debug
 #define T_DIR  1  // Directory
 #define T_FILE 2  // File
 #define T_DEV  3  // Device

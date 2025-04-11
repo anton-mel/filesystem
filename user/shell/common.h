@@ -7,6 +7,7 @@
 #include <syscall.h>
 #include <types.h>
 #include <string.h>
+#include <stdarg.h>
 #include <x86.h>
 #include <gcc.h>
 
@@ -28,5 +29,8 @@ typedef struct {
 int parse(char *line, char *argv[]);
 void print_status_error(status_t code);
 void perror_msg(const char *fmt, ...);
+
+#define false 0
+#define true  1
 
 #endif  /* _USER_COMMON_H_ */
