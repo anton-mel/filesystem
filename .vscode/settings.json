@@ -15,6 +15,9 @@
         "gcc.h": "c",
         "x86.h": "c",
         "syscall.h": "c",
-        "sstream": "c"
+        "sstream": "c",
+        "common.h": "c",
+        "commands.h": "c",
+        "stdarg.h": "c"
     }
 }
