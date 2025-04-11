@@ -11,6 +11,7 @@ command_entry_t commands[] = {
     { "pwd",    exec_pwd,    0 },
     { "cd",     exec_cd,     1 },
     { "cp",     exec_cp,     2 },
+    { "mv",     exec_mv,     2 },
     { "rm",     exec_rm,     1 },
     { "mkdir",  exec_mkdir,  1 },
     { "cat",    exec_cat,    1 },

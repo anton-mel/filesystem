@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+// Default Global Path Varibales
+char cwd_path[MAX_PATH_LEN] = "/";
+
 /* Command Logic */
 
 status_t exec_ls(int argc, char *argv[]) {
@@ -45,18 +48,62 @@ status_t exec_ls(int argc, char *argv[]) {
 }
 
 status_t exec_pwd(int argc, char *argv[]) {
-    // TODO
-    return SH_CMD_NOT_DONE;
+    printf("%s\n", cwd_path);
+    return SH_OK;
 }
 
 status_t exec_cd(int argc, char *argv[]) {
-    // TODO
-    return SH_CMD_NOT_DONE;
+    const char *target;
+    if (argc < 2) {
+        target = "/";
+    } else {
+        target = argv[1];
+    }
+
+    // update both on syscall
+    if (chdir((char *)target) < 0) {
+        return SH_IO_ERROR;
+    }
+    // and visually for bash
+    update_cwd_path(target);
+
+    return SH_OK;
 }
 
 status_t exec_cp(int argc, char *argv[]) {
     // TODO
     return SH_CMD_NOT_DONE;
+}
+
+status_t exec_mv(int argc, char *argv[]) {
+    // TODO
+    if (argc > 4) {
+        // limit on the maximum # of arguments
+        printf("Usage: mv <source> <destination>\n");
+        return SH_TOO_MANY_ARGS;
+    }
+
+    const char *src = argv[1];
+    const char *dst = argv[2];
+
+    int fd = open((char *)src, O_RDONLY);
+    if (fd < 0) {
+        perror_msg("mv: cannot open source %s", src);
+        return SH_IO_ERROR;
+    }
+
+    struct file_stat st;
+    if (fstat(fd, &st) < 0) {
+        perror_msg("mv: cannot stat %s", src);
+        close(fd);
+        return SH_IO_ERROR;
+    }
+
+    // Move by creating a new link 
+    // and removing the old one
+    // Need some way to recoursively go
+    // through the global CWD path...
+    return SH_OK;
 }
 
 status_t exec_rm(int argc, char *argv[]) {
@@ -207,4 +254,21 @@ status_t exec_touch(int argc, char *argv[]) {
     }
 
     return SH_OK;
+}
+
+/* Helpers */
+
+void update_cwd_path(const char *new_path) {
+    if (new_path == NULL || *new_path == '\0') {
+        // Default to root if input is empty
+        strncpy(cwd_path, "/", MAX_PATH_LEN);
+    } else {
+        size_t len = strlen(new_path);
+        if (len >= MAX_PATH_LEN) {
+            PANIC("update_cwd_path: path too long");
+        }
+
+        strncpy(cwd_path, new_path, MAX_PATH_LEN);
+        cwd_path[MAX_PATH_LEN - 1] = '\0';  // Just in case
+    }
 }

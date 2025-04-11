@@ -4,6 +4,9 @@
 #include <file.h>
 #include <stdio.h>
 
+#define MAX_PATH_LEN (2 << 10)
+extern char cwd_path[MAX_PATH_LEN];
+
 typedef enum {
     SH_OK = 0,
     SH_FAIL = -1,
@@ -35,11 +38,15 @@ status_t exec_pwd(int argc, char *argv[]);
 status_t exec_ls(int argc, char *argv[]);
 status_t exec_cd(int argc, char *argv[]);
 status_t exec_cp(int argc, char *argv[]);
+status_t exec_mv(int argc, char *argv[]);
 status_t exec_rm(int argc, char *argv[]);
 status_t exec_mkdir(int argc, char *argv[]);
 status_t exec_cat(int argc, char *argv[]);
 status_t exec_touch(int argc, char *argv[]);
 status_t exec_help(int argc, char *argv[]);
 status_t exec_write(int argc, char *argv[]);
+
+/* CWD Path Handling */
+void update_cwd_path(const char *new_path);
 
 #endif  /* _USER_COMMANDS_H_ */
