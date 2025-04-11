@@ -251,33 +251,51 @@ static bool validate_close_fd(int fd) {
 void sys_fstat(tf_t *tf)
 {
     // TODO
-    // no locking since no buffer access
+    
     // fetch
+    // asm volatile ("int %2"
+    //     : "=a" (errno), "=b" (ret)
+    //     : "i" (T_SYSCALL),
+    //       "a" (SYS_stat),
+    //       "b" (fd),
+    //       "c" (st)
+    //     : "cc", "memory");
     int fd = syscall_get_arg2(tf);
-    struct file_stat *user_stat = (struct file_stat *)syscall_get_arg3(tf);
+    uintptr_t user_buffer = syscall_get_arg3(tf);
+    unsigned int stat_length = sizeof(struct file_stat);
 
-    // validate
-    if (!validate_fstat_args(fd, user_stat)) {
+    if (!check_user_buffer(tf, user_buffer, stat_length, 128)) {
+        return;
+    }
+
+    // validate arguments
+    if (!validate_fstat_args(fd)) {
         set_syscall_failure(tf);
         return;
     }
 
-    // access
+    // access data
     struct file *file_ptr = tcb_get_openfiles(get_curid())[fd];
     if (file_ptr == NULL) {
         set_syscall_failure(tf);
         return;
+    } 
+    if (file_ptr->type != FD_INODE) {
+        set_syscall_failure(tf);
+        return;
     }
 
-    // get stats 
-    int result = file_stat(file_ptr, user_stat);
+    // get stats
+    struct file_stat read_stat;
+    int result = file_stat(file_ptr, &read_stat);
     if (result != 0) {
         set_syscall_failure(tf);
         return;
     }
+
+    pt_copyout(&read_stat, get_curid(), user_buffer, sizeof(struct file_stat));
     set_syscall_success(tf, 0);
 }
-
 
 /* Helpers */
 
@@ -285,8 +303,8 @@ static bool is_valid_user_buffer(uintptr_t addr, size_t len) {
     return addr >= VM_USERLO && (addr + len) <= VM_USERHI;
 }
 
-static bool validate_fstat_args(int fd, struct file_stat *user_stat) {
-    return fd >= 0 && user_stat != NULL;
+static bool validate_fstat_args(int fd) {
+    return fd >= 0 && fd < NOFILE;
 }
 
 /**
@@ -297,6 +315,15 @@ void sys_link(tf_t * tf)
     char name[DIRSIZ], path_new[128], path_old[128];
     struct inode *dp, *ip;
 
+    // asm volatile ("int %2"
+    //     : "=a" (errno), "=b" (ret)
+    //     : "i" (T_SYSCALL),
+    //       "a" (SYS_link),    // syscall number
+    //       "b" (old),         // arg1: old path
+    //       "c" (new),         // arg2: new path
+    //       "d" (old_len),     // arg3: old path length
+    //       "S" (new_len)      // arg4: new path length
+    //     : "cc", "memory");
     uintptr_t old_ptr = syscall_get_arg2(tf);
     uintptr_t new_ptr = syscall_get_arg3(tf);
     size_t old_size = syscall_get_arg4(tf);
@@ -397,14 +424,21 @@ void sys_unlink(tf_t *tf)
     char name[DIRSIZ], path[128];
     uint32_t off;
 
+    // asm volatile ("int %2"
+    //     : "=a" (errno), "=b" (ret)
+    //     : "i" (T_SYSCALL),
+    //       "a" (SYS_unlink),  // syscall number
+    //       "b" (path),        // arg1: path
+    //       "c" (path_len)     // arg2: path length
+    //     : "cc", "memory");
     uintptr_t buffer = syscall_get_arg2(tf);
     size_t length = syscall_get_arg3(tf);
 
     if (!check_user_buffer(tf, buffer, length, 128)) {
         return;
-    } else {
-        pt_copyin(get_curid(), buffer, path, length);
-    }
+    } 
+
+    pt_copyin(get_curid(), buffer, path, length);
 
     if ((dp = nameiparent(path, name)) == 0) {
         syscall_set_errno(tf, E_DISK_OP);
