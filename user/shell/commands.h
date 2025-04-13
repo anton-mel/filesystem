@@ -45,6 +45,7 @@ status_t exec_cat(int argc, char *argv[]);
 status_t exec_touch(int argc, char *argv[]);
 status_t exec_help(int argc, char *argv[]);
 status_t exec_write(int argc, char *argv[]);
+status_t exec_append(int argc, char *argv[]);
 
 /* CWD Path Handling */
 void fixPathFormatting(char *pathBuffer);

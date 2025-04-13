@@ -282,32 +282,96 @@ status_t exec_cat(int argc, char *argv[]) {
 
 // write <data> <file>
 status_t exec_write(int argc, char *argv[]) {
-    // TODO: fix this to be called as from > to
     if (argc < 3) {
-        // requires a string to write and a target filename
         printf("Usage: write [from data] [to file]\n");
         return SH_TOO_FEW_ARGS;
     }
 
-    char *from_path = argv[2];
-    char *to_path = argv[1];
-    size_t to_path_len = strlen(to_path);
+    char *data = argv[1];
+    char *filename = argv[2];
+    size_t data_len = strlen(data);
 
-    int fd = open(from_path, O_CREATE | O_RDWR);
+    // Unfortunately keeping track of EOF
+    // might be a bit challenging, so we
+    // just remove the file completely.
+    unlink(filename);
+
+    // Create a new file (empty)
+    int fd = open(filename, O_CREATE | O_RDWR);
     if (fd < 0) {
-        perror_msg("write: cannot open <file to> %s", from_path);
+        perror_msg("write: cannot create file %s", filename);
         return SH_IO_ERROR;
     }
 
-    int n = write(fd, to_path, to_path_len);
+    int n = write(fd, data, data_len);
     if (n < 0) {
-        perror_msg("write: failed to write to file '%s'", to_path);
-    } else if (n < to_path_len) {
-        perror_msg("write: only wrote %d out of %d bytes to file '%s'", n, to_path_len, to_path);
+        perror_msg("write: failed to write to file '%s'", filename);
+        close(fd);
+        return SH_IO_ERROR;
+    } else if ((size_t)n < data_len) {
+        perror_msg("write: only wrote %d out of %lu bytes to file '%s'", n, data_len, filename);
     }
 
     if (close(fd) < 0) {
-        perror_msg("touch: failed to close %s", to_path);
+        perror_msg("write: failed to close file %s", filename);
+        return SH_IO_ERROR;
+    }
+
+    return SH_OK;
+}
+
+// append <data> <file>
+status_t exec_append(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Usage: append [from data] [to file]\n");
+        return SH_TOO_FEW_ARGS;
+    }
+
+    char *data   = argv[1];
+    char *target = argv[2];
+    size_t data_len = strlen(data);
+
+    int fd = open(target, O_CREATE | O_RDWR);
+    if (fd < 0) {
+        perror_msg("append: cannot open file %s", target);
+        return SH_IO_ERROR;
+    }
+
+    size_t offset = 0;
+    char buf[256];
+    ssize_t n;
+    while ((n = read(fd, buf, sizeof(buf))) > 0) {
+        offset += n;
+    }
+
+    close(fd);
+    fd = open(target, O_CREATE | O_RDWR);
+    if (fd < 0) {
+        perror_msg("append: cannot reopen file %s", target);
+        return SH_IO_ERROR;
+    }
+
+    size_t moved = 0;
+    while (moved < offset) {
+        size_t chunk = (offset - moved) > sizeof(buf) ? sizeof(buf) : (offset - moved);
+        if (read(fd, buf, chunk) <= 0) {
+            break;
+        }
+        moved += chunk;
+    }
+
+    n = write(fd, data, data_len);
+    if (n < 0) {
+        perror_msg("append: failed to write to file '%s'", target);
+        close(fd);
+        return SH_IO_ERROR;
+    } else if ((size_t)n < data_len) {
+        perror_msg("append: only wrote %d out of %lu bytes to file '%s'", n, data_len, target);
+    }
+
+    if (close(fd) < 0) {
+        perror_msg("append: failed to close file %s", target);
+        return SH_IO_ERROR;
     }
 
     return SH_OK;
