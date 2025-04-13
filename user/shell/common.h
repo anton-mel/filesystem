@@ -27,10 +27,14 @@ typedef struct {
 
 /* General Logic */
 int parse(char *line, char *argv[]);
+status_t recursive_exec(const char *path, status_t (*func_ptr)(char *));
+
 void print_status_error(status_t code);
 void perror_msg(const char *fmt, ...);
 
 #define false 0
 #define true  1
+
+#define user_alloc(n) __builtin_alloca(n);
 
 #endif  /* _USER_COMMON_H_ */

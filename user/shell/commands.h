@@ -47,6 +47,10 @@ status_t exec_help(int argc, char *argv[]);
 status_t exec_write(int argc, char *argv[]);
 
 /* CWD Path Handling */
-void update_cwd_path(const char *new_path);
+void fixPathFormatting(char *pathBuffer);
+void setCurrentDirectory(const char *inputPath);
+void concatenatePaths(char *dest, const char *base, const char *addition);
+char *extractSegment(char *pathStr);
+void fixPathFormatting(char *pathStr);
 
 #endif  /* _USER_COMMANDS_H_ */

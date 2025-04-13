@@ -52,32 +52,70 @@ status_t exec_pwd(int argc, char *argv[]) {
     return SH_OK;
 }
 
+
 status_t exec_cd(int argc, char *argv[]) {
-    const char *target;
-    if (argc < 2) {
-        target = "/";
-    } else {
-        target = argv[1];
-    }
+    const char *target = (argc < 2) ? "/" : argv[1];
 
     // update both on syscall
     if (chdir((char *)target) < 0) {
         return SH_IO_ERROR;
     }
-    // and visually for bash
-    update_cwd_path(target);
+    
+    setCurrentDirectory(target);
 
     return SH_OK;
 }
 
 status_t exec_cp(int argc, char *argv[]) {
     // TODO
-    return SH_CMD_NOT_DONE;
+    if (argc > 3) {
+        // limit on the maximum # of arguments
+        printf("Usage: cp <source> <destination>\n");
+        return SH_TOO_MANY_ARGS;
+    }
+
+    const char *src = argv[1];
+    const char *dst = argv[2];
+
+    int fd_src = open((char *)src, O_RDONLY);
+    if (fd_src < 0) {
+        perror_msg("cp: cannot open source %s", src);
+        return SH_IO_ERROR;
+    }
+
+    int fd_dst = open((char *)dst, O_RDONLY);
+    if (fd_dst < 0) {
+        perror_msg("cp: cannot open destination %s", dst);
+        return SH_IO_ERROR;
+    }
+
+    // Read from src, write to dst in chunks.
+    char buffer[512];
+    ssize_t n;
+    while ((n = read(fd_src, buffer, 512)) > 0) {
+        ssize_t written = write(fd_dst, buffer, n);
+        if (written != n) {
+            close(fd_src);
+            close(fd_dst);
+            return 1;
+        }
+    }
+    if (n < 0) {
+        close(fd_src);
+        close(fd_dst);
+        return 1;
+    }
+
+    // Close both files
+    close(fd_src);
+    close(fd_dst);
+
+    return SH_OK;
 }
 
 status_t exec_mv(int argc, char *argv[]) {
     // TODO
-    if (argc > 4) {
+    if (argc > 3) {
         // limit on the maximum # of arguments
         printf("Usage: mv <source> <destination>\n");
         return SH_TOO_MANY_ARGS;
@@ -86,16 +124,15 @@ status_t exec_mv(int argc, char *argv[]) {
     const char *src = argv[1];
     const char *dst = argv[2];
 
-    int fd = open((char *)src, O_RDONLY);
-    if (fd < 0) {
+    int fd_src = open((char *)src, O_RDONLY);
+    if (fd_src < 0) {
         perror_msg("mv: cannot open source %s", src);
         return SH_IO_ERROR;
     }
 
-    struct file_stat st;
-    if (fstat(fd, &st) < 0) {
-        perror_msg("mv: cannot stat %s", src);
-        close(fd);
+    int fd_dst = open((char *)dst, O_RDONLY);
+    if (fd_dst < 0) {
+        perror_msg("mv: cannot open destination %s", src);
         return SH_IO_ERROR;
     }
 
@@ -207,7 +244,7 @@ status_t exec_write(int argc, char *argv[]) {
     if (argc < 3) {
         // requires a string to write and a target filename
         printf("Usage: write [from data] [to file]\n");
-        return 0;
+        return SH_TOO_FEW_ARGS;
     }
 
     char *from_path = argv[2];
@@ -217,7 +254,7 @@ status_t exec_write(int argc, char *argv[]) {
     int fd = open(from_path, O_CREATE | O_RDWR);
     if (fd < 0) {
         perror_msg("write: cannot open <file to> %s", from_path);
-        return 0;
+        return SH_IO_ERROR;
     }
 
     int n = write(fd, to_path, to_path_len);
@@ -256,19 +293,136 @@ status_t exec_touch(int argc, char *argv[]) {
     return SH_OK;
 }
 
-/* Helpers */
 
-void update_cwd_path(const char *new_path) {
-    if (new_path == NULL || *new_path == '\0') {
-        // Default to root if input is empty
+/****** Helpers ******/
+
+// Updates the global current directory given an input path.
+void setCurrentDirectory(const char *inputPath) {
+    if (inputPath == NULL || *inputPath == '\0') {
         strncpy(cwd_path, "/", MAX_PATH_LEN);
+        cwd_path[MAX_PATH_LEN - 1] = '\0';
+        return;
+    }
+
+    if (inputPath[0] == '/') {
+        // Input is an absolute path – overwrite
+        size_t pathSize = strlen(inputPath);
+        if (pathSize >= MAX_PATH_LEN) {
+            PANIC("cwd path too long.");
+            return;
+        }
+        memcpy(cwd_path, inputPath, pathSize);
+        cwd_path[pathSize] = '\0';
     } else {
-        size_t len = strlen(new_path);
-        if (len >= MAX_PATH_LEN) {
-            PANIC("update_cwd_path: path too long");
+        // Input is a relative path – append.
+        size_t currentLen = strlen(cwd_path);
+        size_t addLen = strlen(inputPath);
+
+        // Ensure room for an extra '/'
+        if (currentLen + 1 + addLen >= MAX_PATH_LEN) {
+            PANIC("cwd path too long.");
+            return;
         }
 
-        strncpy(cwd_path, new_path, MAX_PATH_LEN);
-        cwd_path[MAX_PATH_LEN - 1] = '\0';  // Just in case
+        // Add a trailing '/' if one is not already present.
+        if (cwd_path[currentLen - 1] != '/') {
+            cwd_path[currentLen] = '/';
+            currentLen++;
+        }
+
+        // Append the new path filename.
+        for (size_t i = 0; i < addLen; i++) {
+            cwd_path[currentLen + i] = inputPath[i];
+        }
+        cwd_path[currentLen + addLen] = '\0';
     }
+
+    fixPathFormatting(cwd_path);
+}
+
+// Concatenates two path segments into destination.
+// 'base' and 'addition' are joined with a '/' as needed.
+void concatenatePaths(char *dest, const char *base, const char *addition) {
+    if (dest != base) {
+        strcpy(dest, base);
+    }
+
+    size_t baseLen = strlen(base);
+    dest += baseLen;
+    if (baseLen > 0 && *(dest - 1) != '/') {
+        *dest = '/';
+        dest++;
+    }
+
+    strcpy(dest, addition);
+}
+
+// Extracts the first segment from a relative path and returns a pointer to the remainder.
+// The extracted segment is terminated by inserting a '\0' in place of the first '/'.
+char *extractSegment(char *pathStr) {
+    char *tokenPtr = pathStr;
+    while (*tokenPtr && *tokenPtr != '/') {
+        tokenPtr++;
+    }
+
+    if (*tokenPtr == '/') {
+        *tokenPtr = '\0';
+        char *remainder = tokenPtr + 1;
+
+        // Skip any consecutive '/'
+        while (*remainder == '/' && *remainder != '\0') {
+            remainder++;
+        }
+        if (*remainder == '\0') {
+            remainder = NULL;
+        }
+        return remainder;
+    }
+
+    return NULL;
+}
+
+// Normalizes the given absolute 
+// path by resolving '.' and '..' tokens.
+void fixPathFormatting(char *pathStr) {
+    int originalSize = strlen(pathStr);
+    char *tempBuffer = (char *)user_alloc(originalSize + 1);
+    if (!tempBuffer) {
+        return;
+    }
+    char *bufEnd = tempBuffer;
+    char *originalPtr = pathStr;  // final normalized string
+
+    // The input must begin with a '/'
+    *bufEnd++ = '/';
+    pathStr++;
+
+    while (pathStr != NULL) {
+        // Tokenize the next component from the path.
+        char *nextPart = extractSegment(pathStr);
+
+        if (strcmp(pathStr, ".") == 0) {
+            // Skip current directory tokens.
+        } else if (strcmp(pathStr, "..") == 0) {
+            while (bufEnd > tempBuffer && *(bufEnd - 1) != '/') {
+                bufEnd--;
+            }
+        } else if (pathStr[0] != '\0') {
+            if (*(bufEnd - 1) != '/') {
+                *bufEnd++ = '/';
+            }
+            strcpy(bufEnd, pathStr);
+            bufEnd += strlen(pathStr);
+        }
+
+        pathStr = nextPart;
+    }
+
+    // Remove trailing slash unless it's the root "/"
+    if (bufEnd > tempBuffer + 1 && *(bufEnd - 1) == '/') {
+        bufEnd--;
+    }
+
+    *bufEnd = '\0';
+    strcpy(originalPtr, tempBuffer);
 }

@@ -112,8 +112,8 @@ static gcc_inline int sys_fstat(int fd, struct file_stat *st)
 static gcc_inline int sys_link(char *old, char *new)
 {
     int errno, ret;
-    int old_len = strlen(old);
-    int new_len = strlen(new);
+    int old_len = strlen(old) + 1;
+    int new_len = strlen(new) + 1;
 
     // for the arg4 need to use Source reg
     // since all a b c d are used now
@@ -133,7 +133,7 @@ static gcc_inline int sys_link(char *old, char *new)
 static gcc_inline int sys_unlink(char *path)
 {
     int errno, ret;
-    int path_len = strlen(path);
+    int path_len = strlen(path) + 1;
 
     asm volatile ("int %2"
                   : "=a" (errno), "=b" (ret)
@@ -149,7 +149,7 @@ static gcc_inline int sys_unlink(char *path)
 static gcc_inline int sys_open(char *path, int omode)
 {
     int errno, fd;
-    int path_len = strlen(path);
+    int path_len = strlen(path) + 1;
 
     asm volatile ("int %2"
                   : "=a" (errno), "=b" (fd)
@@ -166,7 +166,7 @@ static gcc_inline int sys_open(char *path, int omode)
 static gcc_inline int sys_mkdir(char *path)
 {
     int errno, ret;
-    int path_len = strlen(path);
+    int path_len = strlen(path) + 1;
 
     asm volatile ("int %2"
                   : "=a" (errno), "=b" (ret)
@@ -182,7 +182,7 @@ static gcc_inline int sys_mkdir(char *path)
 static gcc_inline int sys_chdir(char *path)
 {
     int errno, ret;
-    int path_len = strlen(path);
+    int path_len = strlen(path) + 1;
 
     asm volatile ("int %2"
                   : "=a" (errno), "=b" (ret)
