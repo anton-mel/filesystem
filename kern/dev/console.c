@@ -98,12 +98,17 @@ char *readline(const char *prompt)
         if (c < 0) {
             dprintf("read error: %e\n", c);
             return NULL;
-        } else if ((c == '\b' || c == '\x7f') && i > 0) {
-            i--;
-            // BUG FIXED: Erase the character visually
-            putchar('\b');    // move back
-            putchar(' ');     // overwrite with space
-            putchar('\b');    // move back again
+        } else if ((c == '\b' || c == '\x7f')) {
+            // BUG FIXED: avoid ovewritting the
+            // prompt on backspace. Otherwise
+            // the command is just not found.
+            if (i > 0) {
+                i--;
+                // BUG FIXED: Erase the character visually
+                putchar('\b');    // move back
+                putchar(' ');     // overwrite with space
+                putchar('\b');    // move back again
+            }
         } else if (c >= ' ' && i < BUFLEN - 1) {
             putchar(c);
             linebuf[i++] = c;
