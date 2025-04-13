@@ -7,18 +7,18 @@ char buf [SIZE_BUF];                // readline buffer
 // Command table
 command_entry_t commands[] = {
     // cmd      fn_ptr       min_arg
-    { "ls",     exec_ls,     0 },
-    { "pwd",    exec_pwd,    0 },
-    { "cd",     exec_cd,     1 },
-    { "cp",     exec_cp,     2 },
-    { "mv",     exec_mv,     2 },
-    { "rm",     exec_rm,     1 },
-    { "mkdir",  exec_mkdir,  1 },
-    { "cat",    exec_cat,    1 },
-    { "touch",  exec_touch,  1 },
-    { "write",  exec_write,  2 },
-    { "append", exec_append, 2 },
-    { "help",   exec_help,   0 },
+    { "ls",     exec_ls,     0 },  // ls [optional_path]
+    { "pwd",    exec_pwd,    0 },  // pwd
+    { "cd",     exec_cd,     0 },  // cd [optional_path]
+    { "cp",     exec_cp,     2 },  // cp <src> <dst>
+    { "mv",     exec_mv,     2 },  // mv <src> <dst>
+    { "rm",     exec_rm,     1 },  // rm <target>
+    { "mkdir",  exec_mkdir,  1 },  // mkdir <dirname>
+    { "cat",    exec_cat,    1 },  // cat <file>
+    { "touch",  exec_touch,  1 },  // touch <file>
+    { "write",  exec_write,  2 },  // write <file> <content>
+    { "append", exec_append, 2 },  // append <file> <content>
+    { "help",   exec_help,   0 },  // help
     { NULL,     NULL,        0 }
 };
 
