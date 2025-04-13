@@ -143,6 +143,45 @@ status_t exec_mv(int argc, char *argv[]) {
     return SH_OK;
 }
 
+/**
+ * Recursively remove the directory specified by 'dirpath'.
+ * First removes all contained files/directories recursively, 
+ * then removes the directory itself.
+ */
+static status_t rm_dir(const char *dirpath) {
+    int fd = open((char *) dirpath, O_RDONLY);
+    if (fd < 0) {
+        return SH_IO_ERROR;
+    }
+
+    struct dirent de;
+    char fullpath[MAX_PATH_LEN];
+    status_t ret = SH_OK;
+
+    while (read(fd, (char *)&de, sizeof(de))) {
+        if (de.inum != 0 && strcmp(de.name, ".") != 0 && strcmp(de.name, "..") != 0) {
+            concatenatePaths(fullpath, dirpath, de.name);
+
+            // Dummy call
+            char *sub_argv[2];
+            sub_argv[0] = "rm";
+            sub_argv[1] = fullpath;
+            
+            ret = exec_rm(2, sub_argv);
+            if (ret != SH_OK) {
+                close(fd);
+                return ret;
+            }
+        }
+    }
+    close(fd);
+
+    if (unlink((char *) dirpath) < 0) {
+        return SH_IO_ERROR;
+    }
+    return SH_OK;
+}
+
 status_t exec_rm(int argc, char *argv[]) {
     for (int i = 1; i < argc; i++) {
         char *path = argv[i];
@@ -160,7 +199,10 @@ status_t exec_rm(int argc, char *argv[]) {
         }
 
         if (stat.type == T_DIR) {
-            perror_msg("rm: %s is a directory (not removed)", path);
+            status_t ret = rm_dir(path);
+            if (ret != SH_OK) {
+                perror_msg("rm: failed to remove directory %s", path);
+            }
             close(fd);
             continue;
         }
