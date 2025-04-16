@@ -85,10 +85,6 @@ char *readline(const char *prompt)
 }
 ```
 
-## Bonus Point Discussion
-
-The bonus task suggests modifying the kernel I/O buffer access in `sysfile.c` to support concurrency, citing a lack of proper locking. However, this is misleading: the file system implementation already employs locking mechanisms, and our current solution wraps the use of the shared global buffer in a single coarse-grained spinlock. Given that the buffer is reused across syscalls and must be zeroed and copied in one go, fine-grained locking (e.g., locking per block during `pt_copyin/out`) doesn’t offer real benefit—it essentially serializes access anyway. Moreover, since system calls may sleep during I/O, holding any lock across the entire syscall is unsafe. Thus, more granular locking is both unnecessary and unsafe under the current model, making in our opinion the bonus point ill-posed.
-
 ## Shell Command Summary
 
 Each shell command is documented below with its usage and behavior.
