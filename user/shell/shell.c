@@ -2,7 +2,8 @@
 
 #include "common.h"
 
-char buf [SIZE_BUF];                // readline buffer
+#define SIZE_BUF 1025
+char buf [SIZE_BUF];
 
 // Command table
 command_entry_t commands[] = {

@@ -82,6 +82,23 @@ char *strchr(const char *s, char c)
     return 0;
 }
 
+char *strrchr(const char *s, char c) {
+    const char *last = NULL;
+
+    while (*s) {
+        if (*s == c) {
+            last = s;  
+        }
+        s++;
+    }
+
+    if (c == '\0') {
+        return (char *)s;
+    }
+
+    return (char *)last;
+}
+
 char *strfind(const char *s, char c)
 {
     for (; *s; s++)

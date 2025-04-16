@@ -9,7 +9,6 @@ char cwd_path[MAX_PATH_LEN] = "/";
 
 status_t exec_ls(int argc, char *argv[]) {
     // TODO: this function is failing to locate itself
-    // I will leave this to finish to @oliver.
     char *target = (argc < 2) ? "." : argv[1];
     int fd = open(target, O_RDONLY);
 
@@ -35,6 +34,8 @@ status_t exec_ls(int argc, char *argv[]) {
         struct dirent de;
         while (read(fd, (char *)&de, sizeof(de)) == sizeof(de)) {
             if (de.inum == 0) continue;
+            if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
+                continue;
             printf("%s\n", de.name);
         }
     } else {
@@ -56,8 +57,33 @@ status_t exec_pwd(int argc, char *argv[]) {
 status_t exec_cd(int argc, char *argv[]) {
     const char *target = (argc < 2) ? "/" : argv[1];
 
+    // Open the target directory using O_DIRECTORY to ensure it's a directory.
+    int fd = open(target, O_RDONLY);
+    if (fd < 0) {
+        perror_msg("cd: could not open directory: %s", target);
+        return SH_IO_ERROR;
+    }
+
+    // Use fstat() on the open file descriptor to verify it is a directory.
+    struct file_stat st;
+    if (fstat(fd, &st) < 0) {
+        perror_msg("cd: fstat failed for directory: %s", target);
+        close(fd);
+        return SH_IO_ERROR;
+    }
+    
+    if (st.type != T_DIR) {
+        perror_msg("cd: target is not a directory: %s, it is %d", target, st.type);
+        close(fd);
+        return SH_IO_ERROR;
+    }
+    
+    // Once verified, close the descriptor.
+    close(fd);
+
     // update both on syscall
     if (chdir((char *)target) < 0) {
+        perror_msg("cd: could not change directories into: %s", target);
         return SH_IO_ERROR;
     }
     
@@ -66,82 +92,305 @@ status_t exec_cd(int argc, char *argv[]) {
     return SH_OK;
 }
 
-status_t exec_cp(int argc, char *argv[]) {
-    // TODO
-    if (argc > 3) {
-        // limit on the maximum # of arguments
-        printf("Usage: cp <source> <destination>\n");
-        return SH_TOO_MANY_ARGS;
+const char *get_basename(const char *path) {
+    const char *base = strrchr(path, '/');
+    return base ? base + 1 : path;
+}
+
+void remove_basename(char *path) {
+    char *base = strrchr(path, '/');
+    if (base != NULL) {
+        *base = '\0';  // Truncate the string at the last '/'
     }
+}
 
-    const char *src = argv[1];
-    const char *dst = argv[2];
+bool is_subdirectory(const char *src_path, const char *dst_path) {
+    size_t len = strlen(src_path);
+    return (strncmp(src_path, dst_path, len) == 0) && (dst_path[len] == '/' || dst_path[len] == '\0');
+}
 
-    int fd_src = open((char *)src, O_RDONLY);
-    if (fd_src < 0) {
-        perror_msg("cp: cannot open source %s", src);
-        return SH_IO_ERROR;
-    }
+status_t copy_file(int src_fd, int dst_fd) {
+    char buf[4096];
 
-    int fd_dst = open((char *)dst, O_RDONLY);
-    if (fd_dst < 0) {
-        perror_msg("cp: cannot open destination %s", dst);
-        return SH_IO_ERROR;
-    }
-
-    // Read from src, write to dst in chunks.
-    char buffer[512];
-    ssize_t n;
-    while ((n = read(fd_src, buffer, 512)) > 0) {
-        ssize_t written = write(fd_dst, buffer, n);
-        if (written != n) {
-            close(fd_src);
-            close(fd_dst);
-            return 1;
+    ssize_t bytes;
+    while ((bytes = read(src_fd, buf, sizeof(buf))) > 0) {
+        if (write(dst_fd, buf, bytes) != bytes) {
+            perror_msg("cp: write error");
+            close(src_fd);
+            close(dst_fd);
+            return SH_IO_ERROR;
         }
     }
-    if (n < 0) {
-        close(fd_src);
-        close(fd_dst);
-        return 1;
+
+    if (bytes < 0)
+    {
+        perror_msg("cp: read error");
+        return SH_IO_ERROR;
     }
 
-    // Close both files
-    close(fd_src);
-    close(fd_dst);
+    close(src_fd);
+    close(dst_fd);
 
     return SH_OK;
 }
 
-status_t exec_mv(int argc, char *argv[]) {
+
+status_t cp(const char *src_path, const char *dst_path, const char *original_dst_path, bool recursive)
+{
+    if (strcmp(src_path, original_dst_path) == 0) {
+        return SH_OK;
+    }
+
+    int src_fd = open(src_path, O_RDONLY);
+    if (src_fd < 0) {
+        perror_msg("cp: cannot open source: %s", src_path);
+        return SH_IO_ERROR;
+    }
+
+    struct file_stat src_st;
+    if (fstat(src_fd, &src_st) < 0) {
+        perror_msg("cp: cannot fstat source: %s", src_path);
+        close(src_fd);
+        return SH_IO_ERROR;
+    }
+
+    int dst_fd = open(dst_path, O_RDONLY);
+    struct file_stat dst_st;
+    bool dst_exists = (dst_fd >= 0);
+
+    if (!dst_exists) {
+        // case 1: Source is a file
+        if (src_st.type == T_FILE) {
+            dst_fd = open(dst_path, O_CREATE | O_WRONLY);
+            if (dst_fd < 0) {
+                perror_msg("cp: cannot create destination file: %s", dst_path);
+                close(src_fd);
+                return SH_IO_ERROR;
+            }
+            status_t ret = copy_file(src_fd, dst_fd);
+            close(src_fd);
+            close(dst_fd);
+            return ret;
+        }
+        // case 2: Source is a directory
+        else if (src_st.type == T_DIR) {
+            if (!recursive) {
+                perror_msg("cp: -r not specified; cannot copy directory");
+                close(src_fd);
+                return SH_FAIL;
+            }
+
+            if (mkdir(dst_path) < 0) {
+                perror_msg("cp: mkdir failed: %s", dst_path);
+                close(src_fd);
+                return SH_IO_ERROR;
+            }
+
+            close(src_fd);
+            src_fd = open(src_path, O_RDONLY);
+            if (src_fd < 0) {
+                perror_msg("cp: cannot reopen source dir: %s", src_path);
+                return SH_IO_ERROR;
+            }
+
+            dst_fd = open(dst_path, O_RDONLY);
+            if (dst_fd < 0) {
+                perror_msg("cp: cannot open new destination dir: %s", dst_path);
+                close(src_fd);
+                return SH_IO_ERROR;
+            }
+
+            if (fstat(dst_fd, &dst_st) < 0) {
+                perror_msg("cp: cannot fstat new destination dir: %s", dst_path);
+                close(src_fd);
+                close(dst_fd);
+                return SH_IO_ERROR;
+            }
+
+            struct dirent de;
+            while (read(src_fd, (char *)&de, sizeof(de)) == sizeof(de)) {
+                if (de.inum == 0) continue;
+                if (!strcmp(de.name, ".") || !strcmp(de.name, "..")) continue;
+
+                char child_src[128];
+                char child_dst[128];
+                snprintf(child_src, sizeof(child_src), "%s/%s", src_path, de.name);
+                snprintf(child_dst, sizeof(child_dst), "%s/%s", dst_path, de.name);
+
+                status_t ret = cp(child_src, child_dst, original_dst_path, recursive);
+                if (ret != SH_OK) {
+                    close(src_fd);
+                    close(dst_fd);
+                    return ret;
+                }
+            }
+
+            close(src_fd);
+            close(dst_fd);
+            return SH_OK;
+        }
+        else {
+            // Some unsupported file type
+            perror_msg("cp: unsupported source type");
+            close(src_fd);
+            return SH_FAIL;
+        }
+    }
+    else {
+        if (fstat(dst_fd, &dst_st) < 0) {
+            perror_msg("cp: cannot fstat destination: %s", dst_path);
+            close(src_fd);
+            close(dst_fd);
+            return SH_IO_ERROR;
+        }
+
+        // case 1: Source is a file
+        if (src_st.type == T_FILE) {
+            if (dst_st.type == T_FILE) {
+                close(dst_fd); 
+                // re-open for writing:
+                int new_dst_fd = open(dst_path, O_WRONLY);
+                if (new_dst_fd < 0) {
+                    perror_msg("cp: cannot open destination for writing: %s", dst_path);
+                    close(src_fd);
+                    return SH_IO_ERROR;
+                }
+                status_t ret = copy_file(src_fd, new_dst_fd);
+                close(src_fd);
+                close(new_dst_fd);
+                return ret;
+            }
+            else if (dst_st.type == T_DIR) {
+                const char *base = get_basename(src_path);
+                char new_dst_path[128];
+                snprintf(new_dst_path, sizeof(new_dst_path), "%s/%s", dst_path, base);
+
+                int new_dst_fd = open(new_dst_path, O_CREATE | O_WRONLY);
+                if (new_dst_fd < 0) {
+                    perror_msg("cp: cannot create file: %s", new_dst_path);
+                    close(src_fd);
+                    close(dst_fd);
+                    return SH_IO_ERROR;
+                }
+
+                status_t ret = copy_file(src_fd, new_dst_fd);
+                close(src_fd);
+                close(dst_fd);
+                close(new_dst_fd);
+                return ret;
+            }
+            else {
+                perror_msg("cp: destination has unsupported file type");
+                close(src_fd);
+                close(dst_fd);
+                return SH_FAIL;
+            }
+        }
+        // case 2: Source is directory
+        else if (src_st.type == T_DIR) {
+            if (!recursive) {
+                perror_msg("cp: -r not specified; cannot copy directory");
+                close(src_fd);
+                close(dst_fd);
+                return SH_FAIL;
+            }
+
+            if (dst_st.type == T_FILE) {
+                perror_msg("cp: cannot copy directory into a file");
+                close(src_fd);
+                close(dst_fd);
+                return SH_FAIL;
+            }
+
+            else if (dst_st.type == T_DIR) {
+                const char *base = get_basename(src_path);
+                char new_dst_dir[128];
+                snprintf(new_dst_dir, sizeof(new_dst_dir), "%s/%s", dst_path, base);
+
+                if (mkdir(new_dst_dir) < 0) {
+                    perror_msg("cp: mkdir failed: %s", new_dst_dir);
+                    close(src_fd);
+                    close(dst_fd);
+                    return SH_IO_ERROR;
+                }
+
+                // Reopen src to read from it again (since we did fstat, we need a fresh FD pointer)
+                close(src_fd);
+                src_fd = open(src_path, O_RDONLY);
+                if (src_fd < 0) {
+                    perror_msg("cp: cannot reopen source dir: %s", src_path);
+                    close(dst_fd);
+                    return SH_IO_ERROR;
+                }
+
+                struct dirent de;
+                while (read(src_fd, (char *)&de, sizeof(de)) == sizeof(de)) {
+                    if (de.inum == 0) continue;
+                    if (!strcmp(de.name, ".") || !strcmp(de.name, "..")) continue;
+
+                    char child_src[128];
+                    char child_dst[128];
+                    snprintf(child_src, sizeof(child_src), "%s/%s", src_path, de.name);
+                    snprintf(child_dst, sizeof(child_dst), "%s/%s", new_dst_dir, de.name);
+
+                    status_t ret = cp(child_src, child_dst, original_dst_path, recursive);
+                    if (ret != SH_OK) {
+                        close(src_fd);
+                        close(dst_fd);
+                        return ret;
+                    }
+                }
+
+                close(src_fd);
+                close(dst_fd);
+                return SH_OK;
+            } 
+            else {
+                perror_msg("cp: destination has unsupported file type");
+                close(src_fd);
+                close(dst_fd);
+                return SH_FAIL;
+            }
+        }
+        else {
+            perror_msg("cp: unsupported source type");
+            close(src_fd);
+            close(dst_fd);
+            return SH_FAIL;
+        }
+    }
+
+    // Should never get here
+    return SH_OK;
+}
+
+status_t exec_cp(int argc, char *argv[]) {
     // TODO
-    if (argc > 3) {
+    bool recursive = false;
+    if (argc > 4) {
         // limit on the maximum # of arguments
-        printf("Usage: mv <source> <destination>\n");
+        perror_msg("Usage: cp [-r] <source> <destination>\n");
         return SH_TOO_MANY_ARGS;
+    } else if (argc == 4) {
+        if (strcmp(argv[1], "-r") != 0) {
+            perror_msg("Usage: cp [-r] <source> <destination>\n");
+            return SH_INVALID_ARGS;    
+        }
+
+        recursive = true;
     }
 
-    const char *src = argv[1];
-    const char *dst = argv[2];
+    const char *src = argv[argc - 2];
+    const char *dst = argv[argc - 1];
 
-    int fd_src = open((char *)src, O_RDONLY);
-    if (fd_src < 0) {
-        perror_msg("mv: cannot open source %s", src);
-        return SH_IO_ERROR;
-    }
+    const char *base = get_basename(src);
+    char new_dst_path[128];
+    // TODO: Assure this new concatenation is within PATH_MAX length
+    snprintf(new_dst_path, sizeof(new_dst_path), "%s/%s", dst, base);
 
-    int fd_dst = open((char *)dst, O_RDONLY);
-    if (fd_dst < 0) {
-        perror_msg("mv: cannot open destination %s", src);
-        return SH_IO_ERROR;
-    }
-
-    // Move by creating a new link 
-    // and removing the old one
-    // Need some way to recoursively go
-    // through the global CWD path...
-    return SH_OK;
+    return cp(src, dst, new_dst_path, recursive);
 }
+
 
 /**
  * Recursively remove the directory specified by 'dirpath'.
@@ -214,6 +463,39 @@ status_t exec_rm(int argc, char *argv[]) {
         close(fd);
     }
 
+    return SH_OK;
+}
+
+status_t exec_mv(int argc, char *argv[]) {
+    // TODO
+    if (argc > 3) {
+        // limit on the maximum # of arguments
+        printf("Usage: mv <source> <destination>\n");
+        return SH_TOO_MANY_ARGS;
+    }
+
+    const char *src = argv[1];
+    const char *dst = argv[2];
+
+    int src_fd = open((char *)src, O_RDONLY);
+    if (src_fd < 0) {
+        perror_msg("mv: cannot open source %s", src);
+        return SH_IO_ERROR;
+    }
+
+    int dst_fd = open((char *)dst, O_RDONLY);
+    if (dst_fd < 0) {
+        perror_msg("mv: cannot open destination %s", src);
+        return SH_IO_ERROR;
+    }
+
+    cp(src, dst, dst, true);
+    rm_dir(src);
+
+    // Move by creating a new link 
+    // and removing the old one
+    // Need some way to recoursively go
+    // through the global CWD path...
     return SH_OK;
 }
 

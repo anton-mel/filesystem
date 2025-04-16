@@ -14,7 +14,8 @@ typedef enum {
     SH_TOO_MANY_ARGS = -3,
     SH_UNKNOWN_CMD = -4,
     SH_IO_ERROR = -5,
-    SH_CMD_NOT_DONE = -6
+    SH_CMD_NOT_DONE = -6,
+    SH_INVALID_ARGS = -7
     // Add more as needed
 } status_t;
 
