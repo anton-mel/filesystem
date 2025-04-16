@@ -9,7 +9,6 @@ char cwd_path[MAX_PATH_LEN] = "/";
 
 status_t exec_ls(int argc, char *argv[]) {
     // TODO: this function is failing to locate itself
-    // I will leave this to finish to @oliver.
     char *target = (argc < 2) ? "." : argv[1];
     int fd = open(target, O_RDONLY);
 
@@ -37,9 +36,8 @@ status_t exec_ls(int argc, char *argv[]) {
             if (de.inum == 0) continue;
             if (strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
                 continue;
-            printf("%s\t", de.name);
+            printf("%s\n", de.name);
         }
-        printf("\n");
     } else {
         perror_msg("ls: unsupported type for %s", target);
         close(fd);
@@ -393,35 +391,6 @@ status_t exec_cp(int argc, char *argv[]) {
     return cp(src, dst, new_dst_path, recursive);
 }
 
-status_t exec_mv(int argc, char *argv[]) {
-    // TODO
-    if (argc > 3) {
-        // limit on the maximum # of arguments
-        printf("Usage: mv <source> <destination>\n");
-        return SH_TOO_MANY_ARGS;
-    }
-
-    const char *src = argv[1];
-    const char *dst = argv[2];
-
-    int src_fd = open((char *)src, O_RDONLY);
-    if (src_fd < 0) {
-        perror_msg("mv: cannot open source %s", src);
-        return SH_IO_ERROR;
-    }
-
-    int dst_fd = open((char *)dst, O_RDONLY);
-    if (dst_fd < 0) {
-        perror_msg("mv: cannot open destination %s", src);
-        return SH_IO_ERROR;
-    }
-
-    // Move by creating a new link 
-    // and removing the old one
-    // Need some way to recoursively go
-    // through the global CWD path...
-    return SH_OK;
-}
 
 /**
  * Recursively remove the directory specified by 'dirpath'.
@@ -494,6 +463,39 @@ status_t exec_rm(int argc, char *argv[]) {
         close(fd);
     }
 
+    return SH_OK;
+}
+
+status_t exec_mv(int argc, char *argv[]) {
+    // TODO
+    if (argc > 3) {
+        // limit on the maximum # of arguments
+        printf("Usage: mv <source> <destination>\n");
+        return SH_TOO_MANY_ARGS;
+    }
+
+    const char *src = argv[1];
+    const char *dst = argv[2];
+
+    int src_fd = open((char *)src, O_RDONLY);
+    if (src_fd < 0) {
+        perror_msg("mv: cannot open source %s", src);
+        return SH_IO_ERROR;
+    }
+
+    int dst_fd = open((char *)dst, O_RDONLY);
+    if (dst_fd < 0) {
+        perror_msg("mv: cannot open destination %s", src);
+        return SH_IO_ERROR;
+    }
+
+    cp(src, dst, dst, true);
+    rm_dir(src);
+
+    // Move by creating a new link 
+    // and removing the old one
+    // Need some way to recoursively go
+    // through the global CWD path...
     return SH_OK;
 }
 
