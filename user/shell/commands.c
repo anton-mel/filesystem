@@ -55,7 +55,7 @@ status_t exec_pwd(int argc, char *argv[]) {
 
 
 status_t exec_cd(int argc, char *argv[]) {
-    const char *target = (argc < 2) ? "/" : argv[1];
+    char *target = (argc < 2) ? "/" : argv[1];
 
     // Open the target directory using O_DIRECTORY to ensure it's a directory.
     int fd = open(target, O_RDONLY);
@@ -92,8 +92,8 @@ status_t exec_cd(int argc, char *argv[]) {
     return SH_OK;
 }
 
-const char *get_basename(const char *path) {
-    const char *base = strrchr(path, '/');
+char *get_basename(char *path) {
+    char *base = strrchr(path, '/');
     return base ? base + 1 : path;
 }
 
@@ -104,7 +104,7 @@ void remove_basename(char *path) {
     }
 }
 
-bool is_subdirectory(const char *src_path, const char *dst_path) {
+bool is_subdirectory(char *src_path, char *dst_path) {
     size_t len = strlen(src_path);
     return (strncmp(src_path, dst_path, len) == 0) && (dst_path[len] == '/' || dst_path[len] == '\0');
 }
@@ -135,7 +135,7 @@ status_t copy_file(int src_fd, int dst_fd) {
 }
 
 
-status_t cp(const char *src_path, const char *dst_path, const char *original_dst_path, bool recursive)
+status_t cp(char *src_path, char *dst_path, char *original_dst_path, bool recursive)
 {
     if (strcmp(src_path, original_dst_path) == 0) {
         return SH_OK;
@@ -214,8 +214,8 @@ status_t cp(const char *src_path, const char *dst_path, const char *original_dst
 
                 char child_src[128];
                 char child_dst[128];
-                snprintf(child_src, sizeof(child_src), "%s/%s", src_path, de.name);
-                snprintf(child_dst, sizeof(child_dst), "%s/%s", dst_path, de.name);
+                // snprintf(child_src, sizeof(child_src), "%s/%s", src_path, de.name);
+                // snprintf(child_dst, sizeof(child_dst), "%s/%s", dst_path, de.name);
 
                 status_t ret = cp(child_src, child_dst, original_dst_path, recursive);
                 if (ret != SH_OK) {
@@ -261,9 +261,9 @@ status_t cp(const char *src_path, const char *dst_path, const char *original_dst
                 return ret;
             }
             else if (dst_st.type == T_DIR) {
-                const char *base = get_basename(src_path);
+                // char *base = get_basename(src_path);
                 char new_dst_path[128];
-                snprintf(new_dst_path, sizeof(new_dst_path), "%s/%s", dst_path, base);
+                // snprintf(new_dst_path, sizeof(new_dst_path), "%s/%s", dst_path, base);
 
                 int new_dst_fd = open(new_dst_path, O_CREATE | O_WRONLY);
                 if (new_dst_fd < 0) {
@@ -303,9 +303,9 @@ status_t cp(const char *src_path, const char *dst_path, const char *original_dst
             }
 
             else if (dst_st.type == T_DIR) {
-                const char *base = get_basename(src_path);
+                // char *base = get_basename(src_path);
                 char new_dst_dir[128];
-                snprintf(new_dst_dir, sizeof(new_dst_dir), "%s/%s", dst_path, base);
+                // snprintf(new_dst_dir, sizeof(new_dst_dir), "%s/%s", dst_path, base);
 
                 if (mkdir(new_dst_dir) < 0) {
                     perror_msg("cp: mkdir failed: %s", new_dst_dir);
@@ -330,8 +330,8 @@ status_t cp(const char *src_path, const char *dst_path, const char *original_dst
 
                     char child_src[128];
                     char child_dst[128];
-                    snprintf(child_src, sizeof(child_src), "%s/%s", src_path, de.name);
-                    snprintf(child_dst, sizeof(child_dst), "%s/%s", new_dst_dir, de.name);
+                    // snprintf(child_src, sizeof(child_src), "%s/%s", src_path, de.name);
+                    // snprintf(child_dst, sizeof(child_dst), "%s/%s", new_dst_dir, de.name);
 
                     status_t ret = cp(child_src, child_dst, original_dst_path, recursive);
                     if (ret != SH_OK) {
@@ -380,13 +380,13 @@ status_t exec_cp(int argc, char *argv[]) {
         recursive = true;
     }
 
-    const char *src = argv[argc - 2];
-    const char *dst = argv[argc - 1];
+    char *src = argv[argc - 2];
+    char *dst = argv[argc - 1];
 
-    const char *base = get_basename(src);
+    // char *base = get_basename(src);
     char new_dst_path[128];
     // TODO: Assure this new concatenation is within PATH_MAX length
-    snprintf(new_dst_path, sizeof(new_dst_path), "%s/%s", dst, base);
+    // snprintf(new_dst_path, sizeof(new_dst_path), "%s/%s", dst, base);
 
     return cp(src, dst, new_dst_path, recursive);
 }
@@ -397,7 +397,7 @@ status_t exec_cp(int argc, char *argv[]) {
  * First removes all contained files/directories recursively, 
  * then removes the directory itself.
  */
-static status_t rm_dir(const char *dirpath) {
+static status_t rm_dir(char *dirpath) {
     int fd = open((char *) dirpath, O_RDONLY);
     if (fd < 0) {
         return SH_IO_ERROR;
@@ -474,8 +474,8 @@ status_t exec_mv(int argc, char *argv[]) {
         return SH_TOO_MANY_ARGS;
     }
 
-    const char *src = argv[1];
-    const char *dst = argv[2];
+    char *src = argv[1];
+    char *dst = argv[2];
 
     int src_fd = open((char *)src, O_RDONLY);
     if (src_fd < 0) {
@@ -685,7 +685,7 @@ status_t exec_touch(int argc, char *argv[]) {
 /****** Helpers ******/
 
 // Updates the global current directory given an input path.
-void setCurrentDirectory(const char *inputPath) {
+void setCurrentDirectory(char *inputPath) {
     if (inputPath == NULL || *inputPath == '\0') {
         strncpy(cwd_path, "/", MAX_PATH_LEN);
         cwd_path[MAX_PATH_LEN - 1] = '\0';
@@ -730,7 +730,7 @@ void setCurrentDirectory(const char *inputPath) {
 
 // Concatenates two path segments into destination.
 // 'base' and 'addition' are joined with a '/' as needed.
-void concatenatePaths(char *dest, const char *base, const char *addition) {
+void concatenatePaths(char *dest, char *base, char *addition) {
     if (dest != base) {
         strcpy(dest, base);
     }

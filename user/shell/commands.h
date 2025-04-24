@@ -50,8 +50,8 @@ status_t exec_append(int argc, char *argv[]);
 
 /* CWD Path Handling */
 void fixPathFormatting(char *pathBuffer);
-void setCurrentDirectory(const char *inputPath);
-void concatenatePaths(char *dest, const char *base, const char *addition);
+void setCurrentDirectory(char *inputPath);
+void concatenatePaths(char *dest, char *base, char *addition);
 char *extractSegment(char *pathStr);
 void fixPathFormatting(char *pathStr);
 
