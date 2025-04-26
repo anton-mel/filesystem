@@ -26,6 +26,7 @@ GCC_LIBS	:= $(GCC_LIB32)
 # Sub-makefiles
 include		$(KERN_DIR)/config.mk
 include		$(KERN_DIR)/dev/Makefile.inc
+include		$(KERN_DIR)/flock/Makefile.inc
 include		$(KERN_DIR)/lib/Makefile.inc
 include		$(KERN_DIR)/pcpu/Makefile.inc
 include		$(KERN_DIR)/init/Makefile.inc

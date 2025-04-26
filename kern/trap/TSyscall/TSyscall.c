@@ -62,6 +62,9 @@ extern uint8_t _binary___obj_user_pingpong_ding_start[];
 extern uint8_t _binary___obj_user_fstest_fstest_start[];
 extern uint8_t _binary___obj_user_shell_shell_start[];
 
+// User-Space Final-Project Symbols
+extern uint8_t _binary___obj_user_flocktests_flocktests_start[];
+
 /**
  * Spawns a new child process.
  * The user level library function sys_spawn (defined in user/include/syscall.h)
@@ -121,6 +124,9 @@ void sys_spawn(tf_t *tf)
         break;
     case 5:
         elf_addr = _binary___obj_user_shell_shell_start; 
+        break;
+    case 6:
+        elf_addr = _binary___obj_user_flocktests_flocktests_start; 
         break;
     default:
         syscall_set_errno(tf, E_INVAL_PID);
