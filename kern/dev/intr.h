@@ -3,6 +3,12 @@
 
 #ifdef _KERN_
 
+// Disable interrupts inbetween
+#define DISI(code_stmt)     \
+    intr_local_disable();   \
+    code_stmt;              \
+    intr_local_enable()
+
 #define CPU_GDT_NULL  0x00  /* null descriptor */
 #define CPU_GDT_KCODE 0x08  /* kernel text */
 #define CPU_GDT_KDATA 0x10  /* kernel data */

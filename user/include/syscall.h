@@ -209,4 +209,33 @@ static gcc_inline int sys_readline(char *path)
     return errno ? -1 : 0;
 }
 
+static gcc_inline void sys_produce(void)
+{
+   asm volatile("int %0" ::"i"(T_SYSCALL),
+                "a"(SYS_produce)
+                : "cc", "memory");
+}
+
+static gcc_inline void sys_consume(void)
+{
+   asm volatile("int %0" ::"i"(T_SYSCALL),
+                "a"(SYS_consume)
+                : "cc", "memory");
+}
+
+static gcc_inline int sys_flock(int fd, int op)
+{
+    int errno, ret;
+
+    asm volatile ("int %2"
+                  : "=a" (errno), "=b" (ret)
+                  : "i" (T_SYSCALL),
+                    "a" (SYS_flock), // syscall number
+                    "b" (fd),        // arg1: file descriptor
+                    "c" (op)         // arg2: locking type
+                  : "cc", "memory");
+
+    return errno ? -1 : 0;
+}
+
 #endif  /* !_USER_SYSCALL_H_ */

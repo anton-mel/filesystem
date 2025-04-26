@@ -11,3 +11,13 @@ void yield(void)
 {
     sys_yield();
 }
+
+void produce(int val)
+{
+    sys_produce(val);
+}
+
+int consume(void)
+{
+    return sys_consume();
+}

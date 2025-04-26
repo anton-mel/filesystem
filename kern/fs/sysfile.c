@@ -12,10 +12,16 @@
 #include <kern/thread/PTCBIntro/export.h>
 #include <kern/trap/TSyscallArg/export.h>
 
+#include <dev/intr.h>
+#include <pcpu/PCPUIntro/export.h>
+#include <lib/condvar.h>
+
 #include "dir.h"
 #include "path.h"
 #include "fcntl.h"
 #include "log.h"
+
+BoundedBuffer bb;
 
 char glob_buffer[SIZE_BUFF];
 static spinlock_t Block;
@@ -647,5 +653,43 @@ void sys_chdir(tf_t *tf)
     inode_unlock(ip);
     inode_put(tcb_get_cwd(pid));
     tcb_set_cwd(pid, ip);
+    syscall_set_errno(tf, E_SUCC);
+}
+
+// TODO: fix this
+void sys_produce(tf_t *tf)
+{
+    // NOTE: this function is fixed to use
+    // the actually sys call values pass.
+    int i, val;
+    val = syscall_get_arg2(tf);
+    for (i = 0; i < 5; i++)
+    {
+        // Produce an item (we assume value is just i)
+        BB_enqueue(&bb, i);
+
+        // Debug message inside atomic section
+        intr_local_disable();
+        KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
+        intr_local_enable();
+    }
+
+    syscall_set_errno(tf, E_SUCC);
+}
+
+// TODO: fix this
+int sys_consume(tf_t *tf)
+{
+    int i, val;
+    for (i = 0; i < 5; i++)
+    {
+        // Consume an item from the buffer
+        val = BB_dequeue(&bb);
+
+        // @anton-mel: given spec (part3)
+        intr_local_disable();
+        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), val);
+        intr_local_enable();
+    }
     syscall_set_errno(tf, E_SUCC);
 }

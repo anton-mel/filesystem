@@ -20,6 +20,7 @@
         "commands.h": "c",
         "stdarg.h": "c",
         "stdio.h": "c",
-        "functional": "c"
+        "functional": "c",
+        "condvar.h": "c"
     }
 }

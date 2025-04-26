@@ -1,6 +1,11 @@
 #ifndef _USER_FILE_H_
 #define _USER_FILE_H_
 
+#define LOCK_SH 0b0001 
+#define LOCK_EX 0b0010
+#define LOCK_UN 0b0100
+#define LOCK_NB 0b1000
+
 struct file_stat {
     int16_t type;    // Type of file
     uint32_t dev;    // File system's disk device
@@ -54,6 +59,7 @@ struct file {
 #define open(path, omode) sys_open((path), (omode))
 #define mkdir(path)       sys_mkdir((path))
 #define chdir(path)       sys_chdir((path))
+#define flock(fd, op)     sys_flock((fd), (op))
 
 #define T_NONE 0  // Debug
 #define T_DIR  1  // Directory

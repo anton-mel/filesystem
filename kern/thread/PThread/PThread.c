@@ -161,3 +161,35 @@ void thread_wakeup(void *chan)
     }
     spinlock_release(&sched_lk);
 }
+
+// ------------------------------------------------ //
+//     @anton-mel: Helper Functions [PART 4]        //
+// ------------------------------------------------ //
+
+void thread_suspend(spinlock_t *lock)
+{
+	spinlock_acquire(&sched_lk);
+	spinlock_release(lock);
+	
+	unsigned int curid = get_curid(); 
+	tcb_set_state(curid, TSTATE_SLEEP);
+
+	unsigned int newpid = tqueue_dequeue(NUM_IDS);
+	tcb_set_state(newpid, TSTATE_RUN); 
+	set_curid(curid);
+
+	if (curid == newpid) {
+        spinlock_release(&sched_lk);
+	} else {
+		spinlock_release(&sched_lk);
+		kctx_switch(curid, newpid); 
+	}
+}
+
+void thread_ready(unsigned int id)
+{
+	spinlock_acquire(&sched_lk);
+	tcb_set_state(id, TSTATE_READY);
+	tqueue_enqueue(NUM_IDS, id);
+	spinlock_release(&sched_lk); 
+}
