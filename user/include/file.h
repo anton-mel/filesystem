@@ -1,10 +1,10 @@
 #ifndef _USER_FILE_H_
 #define _USER_FILE_H_
 
-#define LOCK_SH 0b0001 
-#define LOCK_EX 0b0010
-#define LOCK_UN 0b0100
-#define LOCK_NB 0b1000
+#define LOCK_SH (1 << 0)
+#define LOCK_EX (1 << 1)
+#define LOCK_UN (1 << 2)
+#define LOCK_NB (1 << 3)
 
 struct file_stat {
     int16_t type;    // Type of file

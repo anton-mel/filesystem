@@ -65,6 +65,8 @@
 
 #ifdef _KERN_
 
+#include <kern/flock/flock.h>
+
 #include "params.h"
 #include "stat.h"
 #include "dinode.h"
@@ -82,6 +84,9 @@ struct inode {
     int16_t nlink;
     uint32_t size;
     uint32_t addrs[NDIRECT + 1];
+
+    // Final Project
+    struct flock fl;
 };
 
 // Table mapping major device number to device functions

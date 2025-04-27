@@ -12,6 +12,11 @@
 
 #ifdef _KERN_
 
+#define LOCK_SH (1 << 0)
+#define LOCK_EX (1 << 1)
+#define LOCK_UN (1 << 2)
+#define LOCK_NB (1 << 3)
+
 #include "stat.h"
 #include "inode.h"
 
@@ -22,6 +27,9 @@ struct file {
     int8_t writable;
     struct inode *ip;
     uint32_t off;
+
+    /* --- NEW: remember whether this open-file holds a flock ---- */
+    uint8_t  holding_flock;   /* 0 = none, 1 = lock held           */
 };
 
 void file_init(void);
@@ -43,6 +51,9 @@ int file_read(struct file *f, char *addr, int n);
 
 // Write to file f.
 int file_write(struct file *f, char *addr, int n);
+
+// Lock the file f.
+int file_flock(struct file *f, int op);
 
 #define CONSOLE 1
 

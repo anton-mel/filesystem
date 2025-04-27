@@ -688,3 +688,52 @@ void sys_consume(tf_t *tf)
     syscall_set_retval1(tf, item);              /* give result to user mode */
     syscall_set_errno(tf, E_SUCC);
 }
+
+/* ------------------------------------------------------------------ */
+/*  sys_flock – advisory file-lock syscall                            */
+/*        arg2 = fd   (int)                                           */
+/*        arg3 = op   (LOCK_SH | LOCK_EX | LOCK_NB | LOCK_UN)         */
+/*        ret  = 0 on success, –1 on error (errno set)                */
+/* ------------------------------------------------------------------ */
+void sys_flock(tf_t *tf)
+{
+    int fd  = syscall_get_arg2(tf);   /* arg2: file descriptor       */
+    int op  = syscall_get_arg3(tf);   /* arg3: LOCK_* flags          */
+    // KERN_DEBUG("sys_flock is working! fd=%d\n", fd);
+
+    /* Pretty debug line (optional) */
+#ifdef DEBUG_FLOCK
+static const char *opstr[] = { "??",
+    "LOCK_SH", "LOCK_EX", "LOCK_NB", "LOCK_UN" };
+KERN_DEBUG("[flock] pid %u fd %d op %s\n",
+           get_curid(), fd,
+           (op & LOCK_SH) ? opstr[1] :
+           (op & LOCK_EX) ? opstr[2] :
+           (op & LOCK_UN) ? opstr[4] : opstr[0]);
+#endif
+
+    /* -------- argument checks ------------------------------------ */
+    if (fd < 0 || fd >= NOFILE) {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+
+    struct file *f = tcb_get_openfiles(get_curid())[fd];
+    if (f == NULL || f->type != FD_INODE) {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, E_BADF);
+        return;
+    }
+
+    /* -------- hand off to VFS-level lock helper ------------------ */
+    int rc = file_flock(f, op);      /* returns 0 or negative errno */
+
+    if (rc == 0) {
+        syscall_set_retval1(tf, 0);
+        syscall_set_errno(tf, E_SUCC);
+    } else {
+        syscall_set_retval1(tf, -1);
+        syscall_set_errno(tf, -rc);  /* expect file_flock to return –Exxx */
+    }
+}

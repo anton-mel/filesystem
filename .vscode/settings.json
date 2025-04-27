@@ -22,6 +22,9 @@
         "stdio.h": "c",
         "functional": "c",
         "condvar.h": "c",
-        "cerrno": "c"
+        "cerrno": "c",
+        "flock.h": "c",
+        "file.h": "c",
+        "debug.h": "c"
     }
 }

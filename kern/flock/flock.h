@@ -1,57 +1,58 @@
-/* ---------------------------------------------------------------------- */
-/* flock.h — minimal in-kernel BSD-flock definitions                      */
-/* ---------------------------------------------------------------------- */
-
-#ifndef _KERN_FLOCK_H_
-#define _KERN_FLOCK_H_
+/*----------------------------------------------------------------------
+ * flock.h  —  minimal reader / writer lock for the kernel file layer
+ *
+ *  •   any number of concurrent SHARED (reader) holders
+ *  •   exactly one EXCLUSIVE (writer) holder
+ *  •   FIFO fairness so queued writers don’t starve
+ *----------------------------------------------------------------------*/
+#ifndef KERN_FLOCK_H_
+#define KERN_FLOCK_H_
 
 #include <lib/spinlock.h>
 #include <lib/condvar.h>
 
-/* user-visible flags */
-#define LOCK_SH  1    /* shared */
-#define LOCK_EX  2    /* exclusive */
-#define LOCK_NB  4    /* don’t block */
-#define LOCK_UN  8    /* unlock   */
+/* ---- public API flags ------------------------------------------------ */
+#define FLOCK_SH  (1U << 0)   /* shared/read            */
+#define FLOCK_EX  (1U << 1)   /* exclusive/write        */
+#define FLOCK_UN  (1U << 2)   /* unlock                 */
+#define FLOCK_NB  (1U << 3)   /* non-blocking acquire   */
 
-/* internal flag */
-#define FL_SLEEP 0x04 /* request may sleep */
+#define FLOCK_EWOULDBLOCK  (-2)
 
-/* forward declare your file structure */
-typedef struct file file_t;
+/* ---- internal state -------------------------------------------------- */
+enum lock_state {
+    LOCK_IDLE = 0,
+    LOCK_SHARED,
+    LOCK_EXCLUSIVE
+};
 
-/* one outstanding lock request (granted or waiting) */
-typedef struct file_lock {
-    file_t            *fl_file;       /* file this lock is on */
-    void              *fl_owner;      /* open-file-description identifier */
-    unsigned int       fl_pid;        /* tgid of the owner */
-    unsigned char      fl_type;       /* LOCK_SH, LOCK_EX, or LOCK_UN */
-    unsigned char      fl_flags;      /* FL_SLEEP when blocking allowed */
-    unsigned long      fl_start;      /* normally 0 */
-    unsigned long      fl_end;        /* normally ~0 (whole file) */
+struct wait_queue {
+    int  count;   /* number of sleepers in this queue          */
+    CV   cv;      /* condition variable used to block / wake   */
+};
 
-    /* simple singly-linked lists */
-    struct file_lock  *next_granted;  /* next in granted list */
-    struct file_lock  *next_blocked;  /* next in blocked list */
+struct flock {
+    /* current ownership ------------------------------------------------ */
+    int            active_readers;   /* # readers holding the lock        */
+    bool           active_writer;    /* true if an exclusive holder exists */
+    enum lock_state state;           /* fast discriminator                */
 
-    CV                 fl_wait;       /* CV to sleep on if blocked */
-} file_lock_t;
+    /* synchronisation primitives --------------------------------------- */
+    spinlock_t     mtx;              /* protects entire struct            */
+    struct wait_queue wq_readers;    /* waiting readers                   */
+    struct wait_queue wq_writers;    /* waiting writers                   */
+};
 
-/* per-inode (or global) lock context */
-typedef struct file_lock_context {
-    spinlock_t         lock;          /* protects both lists */
-    file_lock_t       *granted;       /* head of granted locks */
-    file_lock_t       *blocked;       /* head of waiting requests */
-} file_lock_context_t;
+/* ===================  interface  ===================================== */
+void flock_init      (struct flock *lk);
+int  flock_acquire   (struct flock *lk, unsigned op);
+int  flock_release   (struct flock *lk);
 
-#define EINVAL       22               /* Invalid argument           */
-#define EWOULDBLOCK  11               /* Operation would block      */
+/* Convenience wrapper: returns 0 on success, FLOCK_EWOULDBLOCK on failure */
+static inline int
+flock_try_acquire(struct flock *lk, unsigned op)
+{
+    return flock_acquire(lk, op | FLOCK_NB);
+}
 
-/* 1.  Boolean ------------------------------------------------------- */
-#ifndef __cplusplus                /* C++ already has ‘bool’          */
-  typedef unsigned char  bool;
-# define true   1
-# define false  0
-#endif
-
-#endif /* _KERN_FLOCK_H_ */
+#endif /* KERN_FLOCK_H_ */

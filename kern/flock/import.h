@@ -1,5 +1,5 @@
-#ifndef _KERN_FLOCK_IMPORT_H_
-#define _KERN_FLOCK_IMPORT_H_
+#ifndef _KERN_FLOCK_H_
+#define _KERN_FLOCK_H_
 
 #ifdef _KERN_
 
@@ -18,4 +18,4 @@ void CV_signal(CV *cv);
 
 #endif  /* _KERN_ */
 
-#endif  /* !_KERN_FLOCK_IMPORT_H_ */
+#endif  /* !_KERN_FLOCK_H_ */

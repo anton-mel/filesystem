@@ -10,6 +10,9 @@
 #include "file.h"
 #include "log.h"
 
+#include <kern/flock/export.h>
+#include <kern/flock/flock.h>
+
 struct {
     spinlock_t lock;
     struct file file[NFILE];
@@ -152,4 +155,55 @@ int file_write(struct file *f, char *addr, int n)
     }
     KERN_PANIC("file_write");
     return -1;
+}
+
+/* ------------------------------------------------------------------ */
+/*  file_flock – advisory lock helper                                 */
+/*                                                                    */
+/*  op must contain exactly one of LOCK_SH | LOCK_EX | LOCK_UN,       */
+/*  with an optional LOCK_NB.                                         */
+/*  Returns 0 on success, –1 on failure.                              */
+/* ------------------------------------------------------------------ */
+int file_flock(struct file *f, int op)
+{
+    struct file_stat st;
+    int rc;
+
+    /* Only inode-backed regular files can be locked. */
+    if (f == NULL || f->type != FD_INODE)
+        return -1;
+    if (file_stat(f, &st) < 0 || st.type != T_FILE)
+        return -1;
+
+    /* -------- UNLOCK -------------------------------------------- */
+    if (op & LOCK_UN) {
+        if (op & (LOCK_SH | LOCK_EX))        /* invalid combo  */
+            return -1;
+        if (!f->holding_flock)               /* nothing held   */
+            return -1;
+
+        rc = flock_release(&f->ip->fl);
+        if (rc == 0) f->holding_flock = 0;
+        return rc;
+    }
+
+    /* exactly one of LOCK_SH / LOCK_EX must be set here            */
+    if ((op & LOCK_SH) && (op & LOCK_EX))
+        return -1;
+    if (!(op & (LOCK_SH | LOCK_EX)))
+        return -1;
+
+    /* If this FD already holds a lock, drop it first (upgrade /
+       downgrade uses UN+ACQUIRE, not atomic).                      */
+    if (f->holding_flock) {
+        if (flock_release(&f->ip->fl) < 0)
+            return -1;
+        f->holding_flock = 0;
+    }
+
+    /* Try to acquire the requested lock. flock_acquire() handles
+       blocking vs. LOCK_NB itself.                                 */
+    rc = flock_acquire(&f->ip->fl, op);
+    if (rc == 0) f->holding_flock = 1;
+    return rc;
 }

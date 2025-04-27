@@ -18,7 +18,10 @@ static volatile int cpu_booted = 0;
 static volatile int all_ready = FALSE;
 
 extern uint8_t _binary___obj_user_idle_idle_start[];
-extern uint8_t _binary___obj_user_shell_shell_start[];
+
+// all programs will be loaded usign a 
+// system call on top of the idle process.
+// extern uint8_t _binary___obj_user_shell_shell_start[];
 
 static void kern_main(void)
 {
@@ -36,9 +39,9 @@ static void kern_main(void)
     tcb_set_state(idle_pid, TSTATE_RUN);
 
     // Create our shell process
-    shell_pid = proc_create(_binary___obj_user_shell_shell_start, 10000);
-    KERN_INFO("CPU%d: process shell %d is created.\n", cpu_idx, shell_pid);
-    tcb_set_state(shell_pid, TSTATE_RUN);
+    // shell_pid = proc_create(_binary___obj_user_shell_shell_start, 10000);
+    // KERN_INFO("CPU%d: process shell %d is created.\n", cpu_idx, shell_pid);
+    // tcb_set_state(shell_pid, TSTATE_RUN);
 
     set_curid(idle_pid);
     kctx_switch(0, idle_pid);
