@@ -21,6 +21,7 @@
         "stdarg.h": "c",
         "stdio.h": "c",
         "functional": "c",
-        "condvar.h": "c"
+        "condvar.h": "c",
+        "cerrno": "c"
     }
 }

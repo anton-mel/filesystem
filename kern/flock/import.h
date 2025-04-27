@@ -3,6 +3,8 @@
 
 #ifdef _KERN_
 
+unsigned int get_curid(void);
+
 void spinlock_init(spinlock_t *lk);
 void spinlock_acquire(spinlock_t *lk);
 void spinlock_release(spinlock_t *lk);

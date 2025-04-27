@@ -656,40 +656,35 @@ void sys_chdir(tf_t *tf)
     syscall_set_errno(tf, E_SUCC);
 }
 
-// TODO: fix this
+/* ------------------------------------------------------------------ */
+/*  Produce ONE item that the user passes in arg2                     */
+/* ------------------------------------------------------------------ */
 void sys_produce(tf_t *tf)
 {
-    // NOTE: this function is fixed to use
-    // the actually sys call values pass.
-    int i, val;
-    val = syscall_get_arg2(tf);
-    for (i = 0; i < 5; i++)
-    {
-        // Produce an item (we assume value is just i)
-        BB_enqueue(&bb, i);
+    unsigned int item = syscall_get_arg2(tf);   /* value supplied by user */
 
-        // Debug message inside atomic section
-        intr_local_disable();
-        KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
-        intr_local_enable();
-    }
+    BB_enqueue(&bb, item);                      /* may block if buffer full */
+
+    intr_local_disable();
+    KERN_DEBUG("CPU %d  PID %d  →  produced %u\n",
+               get_pcpu_idx(), get_curid(), item);
+    intr_local_enable();
 
     syscall_set_errno(tf, E_SUCC);
 }
 
-// TODO: fix this
-int sys_consume(tf_t *tf)
+/* ------------------------------------------------------------------ */
+/*  Consume ONE item and return it in retval1                         */
+/* ------------------------------------------------------------------ */
+void sys_consume(tf_t *tf)
 {
-    int i, val;
-    for (i = 0; i < 5; i++)
-    {
-        // Consume an item from the buffer
-        val = BB_dequeue(&bb);
+    unsigned int item = BB_dequeue(&bb);        /* may block if buffer empty */
 
-        // @anton-mel: given spec (part3)
-        intr_local_disable();
-        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), val);
-        intr_local_enable();
-    }
+    intr_local_disable();
+    KERN_DEBUG("CPU %d  PID %d  ←  consumed %u\n",
+               get_pcpu_idx(), get_curid(), item);
+    intr_local_enable();
+
+    syscall_set_retval1(tf, item);              /* give result to user mode */
     syscall_set_errno(tf, E_SUCC);
 }

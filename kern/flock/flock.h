@@ -44,4 +44,14 @@ typedef struct file_lock_context {
     file_lock_t       *blocked;       /* head of waiting requests */
 } file_lock_context_t;
 
+#define EINVAL       22               /* Invalid argument           */
+#define EWOULDBLOCK  11               /* Operation would block      */
+
+/* 1.  Boolean ------------------------------------------------------- */
+#ifndef __cplusplus                /* C++ already has ‘bool’          */
+  typedef unsigned char  bool;
+# define true   1
+# define false  0
+#endif
+
 #endif /* _KERN_FLOCK_H_ */
