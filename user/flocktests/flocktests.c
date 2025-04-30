@@ -10,6 +10,33 @@
 // that it is working. If the FLOCK is not working
 // debug it. My implemntation might be wrong.
 
+#define TMO   2000   /* ms to wait before declaring a hang                */
+#define RETRY 10000  /* iterations in stress/fuzzer loops                 */
+
+/* ---- Basic correctness ----------------------------------------------- */
+
+void single_writer (void) {
+    int fd1 = open("single_writer.dat", O_CREATE | O_RDWR);
+    if (fd1 < 0) { printf("open#1 failed\n"); exit(); }
+    
+}
+
+/* ---- Mutual Exclusion ---------------------------------------------- */
+
+/* ---- Non-Blocking --------------------------------------------------- */
+
+/* ---- Re-entrancy --------------------------------------------------- */
+
+/* ---- Upgrade Deadlock --------------------------------------------------- */
+
+/* ---- Fairness/Starvation --------------------------------------------------- */
+
+/* ---- Inheritance --------------------------------------------------- */
+
+/* ---- Signal Interrupt --------------------------------------------------- */
+
+/* ---- Edge Cases --------------------------------------------------- */
+
 int
 main(void)
 {
