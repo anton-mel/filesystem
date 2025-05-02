@@ -666,8 +666,8 @@ void sys_produce(tf_t *tf)
     BB_enqueue(&bb, item);                      /* may block if buffer full */
 
     intr_local_disable();
-    KERN_DEBUG("CPU %d  PID %d  →  produced %u\n",
-               get_pcpu_idx(), get_curid(), item);
+    // KERN_DEBUG("CPU %d  PID %d  →  produced %u\n",
+            //    get_pcpu_idx(), get_curid(), item);
     intr_local_enable();
 
     syscall_set_errno(tf, E_SUCC);
@@ -681,8 +681,8 @@ void sys_consume(tf_t *tf)
     unsigned int item = BB_dequeue(&bb);        /* may block if buffer empty */
 
     intr_local_disable();
-    KERN_DEBUG("CPU %d  PID %d  ←  consumed %u\n",
-               get_pcpu_idx(), get_curid(), item);
+    // KERN_DEBUG("CPU %d  PID %d  ←  consumed %u\n",
+            //    get_pcpu_idx(), get_curid(), item);
     intr_local_enable();
 
     syscall_set_retval1(tf, item);              /* give result to user mode */

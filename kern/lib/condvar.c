@@ -110,7 +110,7 @@ void BB_enqueue(BoundedBuffer *bb, unsigned int val)
     bb->size++;
 
     // unsigned int cpu_idx = get_pcpu_idx();
-    DISI(KERN_DEBUG("\033[0;32mEnqueued %u: Used %u\\%d\033[0m\n", val, bb->size, BUFFER_CAPACITY));
+    // DISI(KERN_DEBUG("\033[0;32mEnqueued %u: Used %u\\%d\033[0m\n", val, bb->size, BUFFER_CAPACITY));
 
     CV_signal(&bb->empty);
     spinlock_release(&bb->lock);
@@ -130,7 +130,7 @@ unsigned int BB_dequeue(BoundedBuffer *bb)
     bb->size--;
 
     // unsigned int cpu_idx = get_pcpu_idx();
-    DISI(KERN_DEBUG("\033[0;31mDequeued %u: Used %u\\%d\033[0m\n", val, bb->size, BUFFER_CAPACITY));
+    // DISI(KERN_DEBUG("\033[0;31mDequeued %u: Used %u\\%d\033[0m\n", val, bb->size, BUFFER_CAPACITY));
 
     CV_signal(&bb->full);
     spinlock_release(&bb->lock);
