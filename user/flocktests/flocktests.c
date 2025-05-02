@@ -4,11 +4,50 @@
 #include <file.h>
 #include "flocktests_common.h"
 
+#define exit(...) return -1
+
 #define FAIL(msg) do { printf("FAIL: %s\n", msg); return 1; } while (0)
 #define PASS() do { printf("PASS\n"); return 0; } while (0)
 
 #define SYNC_BEFORE_CHILD() produce(1)
 #define SYNC_AFTER_CHILD()  consume()
+
+int nonblocking(void) {
+    int fd, con;
+    pid_t child;
+
+    printf("=====nonblocking (writer phase)=====\n");
+
+    /* PART 2: spawn the writer (ELF ID 11) which takes an exclusive lock */
+    if ((child = spawn(11, 500)) == -1) {
+        printf("ERROR in nonblocking: failed to spawn writer (ELF 11)\n");
+        exit();
+    }
+
+    /* wait until the writer has successfully acquired its LOCK_EX */
+    con = consume();
+
+    /* open the same flockfile for read/write */
+    if ((fd = open(FLOCK_TEST_PATH, O_RDWR)) < 0) {
+        printf("ERROR in nonblocking: open flockfile failed\n");
+        exit();
+    }
+
+    /* this should fail immediately with EWOULDBLOCK */
+    if (flock(fd, LOCK_EX | LOCK_NB) != -1) {
+        printf("ERROR in nonblocking: flock unexpectedly succeeded\n");
+        close(fd);
+        produce(1);       /* let writer finish */
+        exit();
+    }
+
+    /* tell the writer it can now release and exit */
+    produce(1);
+
+    close(fd);
+    printf("=====nonblocking (writer phase) ok=====\n\n");
+    return 0;
+}
 
 /* ---- Basic correctness ----------------------------------------------- */
 
@@ -24,28 +63,28 @@ int test_single_writer (void) {
     PASS();
 }
 
-// int test_multiple_readers (void) {
-//     printf("(multiple readers)...\n");
+int test_multiple_readers (void) {
+    printf("(multiple readers)...\n");
 
-//     int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
-//     if (fd1 < 0) FAIL("open failed");
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
 
-//     int children[NUM_IDS];
-//     for (int i = 0; i < NUM_IDS; i++) {
-//         children[i] = sys_spawn(R_EXP_NB, 8);
-//         if (children[i] == NUM_IDS) FAIL("spawn failed");
-//     }
+    int children[NUM_IDS];
+    for (int i = 0; i < NUM_IDS; i++) {
+        children[i] = sys_spawn(R_EXP_NB, 8);
+        if (children[i] == NUM_IDS) FAIL("spawn failed");
+    }
 
-//     // int status;
-//     for (int i = 0; i < NUM_IDS; i++) {
-//         // sys_wait(children[i], &status);
-//         // if (status != 0) FAIL("reader was blocked");
-//     }
+    // int status;
+    for (int i = 0; i < NUM_IDS; i++) {
+        // sys_wait(children[i], &status);
+        // if (status != 0) FAIL("reader was blocked");
+    }
 
-//     if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
 
-//     PASS();
-// }
+    PASS();
+}
 
 /* ---- Mutual Exclusion ---------------------------------------------- */
 
@@ -204,15 +243,16 @@ int main(void)
 {
     int failures = 0;
 
-    failures += run_test("single_writer",               test_single_writer);
-    // failures += run_test("multiple_readers",            test_multiple_readers); // not sure how to do this with my approach
-    failures += run_test("writer_excludes_reader",      test_writer_excludes_reader);
-    failures += run_test("writer_excludes_writer",      test_writer_excludes_writer);
-    failures += run_test("reader_excludes_writer",      test_reader_excludes_writer);
-    failures += run_test("queued_writer_doesnt_block",  test_queued_writer_doesnt_block);
-    failures += run_test("bad_fd",                      test_bad_fd);
-    failures += run_test("upgrade_flock",               test_upgrade_flock);
-    failures += run_test("downgrade_flock",             test_downgrade_flock);
+    failures += run_test("nonblocking",                 nonblocking);
+    // failures += run_test("single_writer",               test_single_writer);
+    // failures += run_test("multiple_readers",            test_multiple_readers);
+    // failures += run_test("writer_excludes_reader",      test_writer_excludes_reader);
+    // failures += run_test("writer_excludes_writer",      test_writer_excludes_writer);
+    // failures += run_test("reader_excludes_writer",      test_reader_excludes_writer);
+    // failures += run_test("queued_writer_doesnt_block",  test_queued_writer_doesnt_block);
+    // failures += run_test("bad_fd",                      test_bad_fd);
+    // failures += run_test("upgrade_flock",               test_upgrade_flock);
+    // failures += run_test("downgrade_flock",             test_downgrade_flock);
 
     printf("\n========== Summary =========\n");
     if (failures == 0)

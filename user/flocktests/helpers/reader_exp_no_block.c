@@ -16,7 +16,7 @@ int main(void) {
 
     SYNC_AFTER_CHILD(); // Wait for main test to say: "you may try locking"
 
-    fd = open("flockfile", O_RDWR);
+    fd = open(FLOCK_TEST_PATH, O_RDWR);
     if (fd < 0) {
         printf("reader_exp_no_block ERROR: open failed\n");
         exit();

@@ -63,13 +63,12 @@ extern uint8_t _binary___obj_user_fstest_fstest_start[];
 extern uint8_t _binary___obj_user_shell_shell_start[];
 
 // User-Space Final-Project Symbols
-extern uint8_t _binary___obj_user_flocktests_flocktests_start[];
-extern uint8_t _binary___obj_user_flocktests_flockstall_start[];
-extern uint8_t _binary___obj_user_flocktests_reader_exp_block_start[];
-extern uint8_t _binary___obj_user_flocktests_reader_exp_no_block_start[];
-extern uint8_t _binary___obj_user_flocktests_writer_does_block_start[];
-extern uint8_t _binary___obj_user_flocktests_writer_exp_block_start[];
-extern uint8_t _binary___obj_user_flocktests_writer_exp_no_block_start[];
+extern uint8_t _binary___obj_user_flocktests_flocktests_start[];            // Demo Tests
+extern uint8_t _binary___obj_user_flocktests_reader_exp_no_block_start[];   // Symb 7
+extern uint8_t _binary___obj_user_flocktests_reader_exp_block_start[];      // Symb 8
+extern uint8_t _binary___obj_user_flocktests_writer_exp_no_block_start[];   // Symb 9
+extern uint8_t _binary___obj_user_flocktests_writer_exp_block_start[];      // Symb 10
+extern uint8_t _binary___obj_user_flocktests_writer_does_block_start[];     // Symb 11
 
 /**
  * Spawns a new child process.
@@ -136,27 +135,23 @@ void sys_spawn(tf_t *tf)
         break;
     case 7:
     // [helper] reader_exp_no_block
-        elf_addr = _binary___obj_user_flocktests_flockstall_start;
+        elf_addr = _binary___obj_user_flocktests_reader_exp_no_block_start;
         break;
     case 8:
     // [helper] reader_exp_block
-        elf_addr = _binary___obj_user_flocktests_flockstall_start;
+        elf_addr = _binary___obj_user_flocktests_reader_exp_block_start;
         break;
     case 9:
     // [helper] writer_exp_no_block
-        elf_addr = _binary___obj_user_flocktests_flockstall_start;
+        elf_addr = _binary___obj_user_flocktests_writer_exp_no_block_start;
         break;
     case 10:
     // [helper] writer_exp_block
-        elf_addr = _binary___obj_user_flocktests_flockstall_start;
+        elf_addr = _binary___obj_user_flocktests_writer_exp_block_start;
         break;
     case 11:
     // [helper] writer_does_block
-        elf_addr = _binary___obj_user_flocktests_flockstall_start;
-        break;
-    case 12:
-    // [helper] synchronization
-        elf_addr = _binary___obj_user_flocktests_flockstall_start;
+        elf_addr = _binary___obj_user_flocktests_writer_does_block_start;
         break;
     default:
         syscall_set_errno(tf, E_INVAL_PID);
