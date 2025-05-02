@@ -2,42 +2,57 @@
 
 OBJDIRS		+= $(USER_OBJDIR)/flocktests
 
-USER_FLOCKTESTS_SRC	+= $(USER_DIR)/flocktests/flocktests.c
-USER_FLOCKTESTS_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKTESTS_SRC))
-USER_FLOCKTESTS_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKTESTS_OBJ))
-KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flocktests
+# flocktests main test driver
+USER_FLOCKTESTS_SRC += $(USER_DIR)/flocktests/flocktests.c
+USER_FLOCKTESTS_OBJ := $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKTESTS_SRC))
+USER_FLOCKTESTS_OBJ := $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKTESTS_OBJ))
+KERN_BINFILES += $(USER_OBJDIR)/flocktests/flocktests
 
-USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
-KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+# reader_exp_block
+USER_READER_EXP_BLOCK_SRC += $(USER_DIR)/flocktests/reader_exp_block.c
+USER_READER_EXP_BLOCK_OBJ := $(patsubst %.c, $(OBJDIR)/%.o, $(USER_READER_EXP_BLOCK_SRC))
+USER_READER_EXP_BLOCK_OBJ := $(patsubst %.S, $(OBJDIR)/%.o, $(USER_READER_EXP_BLOCK_OBJ))
+KERN_BINFILES += $(USER_OBJDIR)/flocktests/reader_exp_block
 
-USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
-KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+# reader_exp_no_block
+USER_READER_EXP_NB_SRC += $(USER_DIR)/flocktests/reader_exp_no_block.c
+USER_READER_EXP_NB_OBJ := $(patsubst %.c, $(OBJDIR)/%.o, $(USER_READER_EXP_NB_SRC))
+USER_READER_EXP_NB_OBJ := $(patsubst %.S, $(OBJDIR)/%.o, $(USER_READER_EXP_NB_OBJ))
+KERN_BINFILES += $(USER_OBJDIR)/flocktests/reader_exp_no_block
 
-USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
-KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+# writer_does_block
+USER_WRITER_DOES_BLOCK_SRC += $(USER_DIR)/flocktests/writer_does_block.c
+USER_WRITER_DOES_BLOCK_OBJ := $(patsubst %.c, $(OBJDIR)/%.o, $(USER_WRITER_DOES_BLOCK_SRC))
+USER_WRITER_DOES_BLOCK_OBJ := $(patsubst %.S, $(OBJDIR)/%.o, $(USER_WRITER_DOES_BLOCK_OBJ))
+KERN_BINFILES += $(USER_OBJDIR)/flocktests/writer_does_block
 
-USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
-KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+# writer_exp_block
+USER_WRITER_EXP_BLOCK_SRC += $(USER_DIR)/flocktests/writer_exp_block.c
+USER_WRITER_EXP_BLOCK_OBJ := $(patsubst %.c, $(OBJDIR)/%.o, $(USER_WRITER_EXP_BLOCK_SRC))
+USER_WRITER_EXP_BLOCK_OBJ := $(patsubst %.S, $(OBJDIR)/%.o, $(USER_WRITER_EXP_BLOCK_OBJ))
+KERN_BINFILES += $(USER_OBJDIR)/flocktests/writer_exp_block
 
-USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
-KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+# writer_exp_no_block
+USER_WRITER_EXP_NB_SRC += $(USER_DIR)/flocktests/writer_exp_no_block.c
+USER_WRITER_EXP_NB_OBJ := $(patsubst %.c, $(OBJDIR)/%.o, $(USER_WRITER_EXP_NB_SRC))
+USER_WRITER_EXP_NB_OBJ := $(patsubst %.S, $(OBJDIR)/%.o, $(USER_WRITER_EXP_NB_OBJ))
+KERN_BINFILES += $(USER_OBJDIR)/flocktests/writer_exp_no_block
 
-USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
-USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
-KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+# flockstall
+USER_FLOCKSTALL_SRC += $(USER_DIR)/flocktests/flockstall.c
+USER_FLOCKSTALL_OBJ := $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
+USER_FLOCKSTALL_OBJ := $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
+KERN_BINFILES += $(USER_OBJDIR)/flocktests/flockstall
 
-flocktests: $(USER_OBJDIR)/flocktests/flocktests $(USER_OBJDIR)/flocktests/flockstall
+# Build rules for each binary
+flocktests: \
+	$(USER_OBJDIR)/flocktests/flocktests \
+	$(USER_OBJDIR)/flocktests/flockstall \
+	$(USER_OBJDIR)/flocktests/reader_exp_block \
+	$(USER_OBJDIR)/flocktests/reader_exp_no_block \
+	$(USER_OBJDIR)/flocktests/writer_does_block \
+	$(USER_OBJDIR)/flocktests/writer_exp_block \
+	$(USER_OBJDIR)/flocktests/writer_exp_no_block
 
 $(USER_OBJDIR)/flocktests/flocktests: $(USER_LIB_OBJ) $(USER_FLOCKTESTS_OBJ)
 	@echo + ld[USER/flocktests] $@
@@ -51,6 +66,37 @@ $(USER_OBJDIR)/flocktests/flockstall: $(USER_LIB_OBJ) $(USER_FLOCKSTALL_OBJ)
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 
+$(USER_OBJDIR)/flocktests/reader_exp_block: $(USER_LIB_OBJ) $(USER_READER_EXP_BLOCK_OBJ)
+	@echo + ld[USER/flocktests] $@
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_READER_EXP_BLOCK_OBJ) $(GCC_LIBS)
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+
+$(USER_OBJDIR)/flocktests/reader_exp_no_block: $(USER_LIB_OBJ) $(USER_READER_EXP_NB_OBJ)
+	@echo + ld[USER/flocktests] $@
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_READER_EXP_NB_OBJ) $(GCC_LIBS)
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+
+$(USER_OBJDIR)/flocktests/writer_does_block: $(USER_LIB_OBJ) $(USER_WRITER_DOES_BLOCK_OBJ)
+	@echo + ld[USER/flocktests] $@
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_WRITER_DOES_BLOCK_OBJ) $(GCC_LIBS)
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+
+$(USER_OBJDIR)/flocktests/writer_exp_block: $(USER_LIB_OBJ) $(USER_WRITER_EXP_BLOCK_OBJ)
+	@echo + ld[USER/flocktests] $@
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_WRITER_EXP_BLOCK_OBJ) $(GCC_LIBS)
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+
+$(USER_OBJDIR)/flocktests/writer_exp_no_block: $(USER_LIB_OBJ) $(USER_WRITER_EXP_NB_OBJ)
+	@echo + ld[USER/flocktests] $@
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_WRITER_EXP_NB_OBJ) $(GCC_LIBS)
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+
+# Generic compile rules
 $(USER_OBJDIR)/flocktests/%.o: $(USER_DIR)/flocktests/%.c
 	@echo + cc[USER/flocktests] $<
 	@mkdir -p $(@D)

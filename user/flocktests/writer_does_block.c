@@ -5,12 +5,16 @@
 #include <syscall.h>
 #include <file.h>
 
+#include "flocktests_common.h"
+
+#define exit(...) return -1
+
 int main (void) {
     int fd = open(FLOCK_TEST_PATH, O_RDONLY);
 
-    if (flock(fd, LOCK_EX) != 0)  sys_exit(1);
+    if (flock(fd, LOCK_EX) != 0)  exit();
 
     flock(fd, LOCK_UN);
     close(fd);
-    sys_exit(0);
+    exit();
 }
