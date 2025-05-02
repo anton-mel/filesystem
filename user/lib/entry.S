@@ -16,8 +16,10 @@ noargs:
 args_exist:
 	/* Jump to the C part. */
 	call	main
+	movl	%eax, %ebx
+	movl	$16,  %eax
 
-	/* When returning, push the return value on the stack. */
-	pushl	%eax
+	int 	$0x30
+
 spin:
-	jmp	spin
+	jmp spin

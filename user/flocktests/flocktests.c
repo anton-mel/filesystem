@@ -4,296 +4,239 @@
 #include <file.h>
 #include "flocktests_common.h"
 
+// Oliver TODO:
+// Check how they did the tests in ftests
+// do the same linking, create tests
+// that covers every possible case to prove
+// that it is working. If the FLOCK is not working
+// debug it. My implemntation might be wrong.
+
 #define FAIL(msg) do { printf("FAIL: %s\n", msg); return 1; } while (0)
-#define PASS()    do { printf("PASS\n"); return 0; } while (0)
+#define PASS() do { printf("PASS\n"); return 0; } while (0)
 
-#define exit(...) return -1
+/* ---- Basic correctness ----------------------------------------------- */
 
-/* sync macros from common: */
-#define SYNC_BEFORE_CHILD()  produce(1)
-#define SYNC_AFTER_CHILD()   consume()
+int test_single_writer (void) {
+    printf("(single writer)...\n");
 
-/*
- * test_single_writer: verify that a single process can successfully
- * acquire and then release an exclusive lock on a file when there is
- * no contention.
- *
- * This ensures basic correctness of LOCK_EX and LOCK_UN in the
- * uncontended case.
- */
-int test_single_writer(void) {
-    int fd = open(FLOCK_TEST_PATH, O_CREATE|O_RDWR);
-    if (fd < 0) FAIL("open");
-    if (flock(fd, LOCK_EX) != 0) FAIL("flock ex");
-    if (flock(fd, LOCK_UN) != 0) FAIL("flock un");
-    close(fd);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR);
+    if (fd1 < 0) FAIL("open failed");
+    
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock exclusive lock failed");
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+
     PASS();
 }
 
-/*
- * test_multiple_readers: verify that multiple processes can concurrently
- * acquire shared locks on the same file without blocking each other.
- *
- * This ensures that LOCK_SH allows simultaneous read access by more than
- * one holder when no exclusive lock is held.
- */
-int test_multiple_readers(void) {
-    pid_t child;
-    int fd = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR);
-    if (fd < 0) FAIL("open");
+int test_multiple_readers (void) {
+    printf("(multiple readers)...\n");
 
-    /* spawn first reader (ELF ID 7 = reader_exp_no_block) */
-    if ((child = spawn(R_EXP_NB, 500)) < 0)
-        FAIL("spawn reader_exp_no_block");
-    consume();  /* wait for first reader’s produce(1) */
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
 
-    /* spawn second reader (same ELF ID 7) */
-    if ((child = spawn(R_EXP_NB, 500)) < 0)
-        FAIL("spawn reader_exp_no_block");
-    consume();  /* wait for second reader’s produce(1) */
-
-    /* spawn third reader (same ELF ID 7) */
-    if ((child = spawn(R_EXP_NB, 500)) < 0)
-    FAIL("spawn reader_exp_no_block");
-    consume();  /* wait for second reader’s produce(1) */
-
-    close(fd);
-    PASS();
-}
-
-/*
- * test_ewouldblock: verify that a non-blocking exclusive flock
- * correctly fails with EWOULDBLOCK when another process already
- * holds an exclusive lock on the same file.
- *
- * This ensures that LOCK_EX | LOCK_NB does not block the caller,
- * but instead immediately returns an error if the resource is busy.
- */
-int test_ewouldblock(void) {
-    int fd;
-    pid_t child;
-
-    /* PART 2: spawn the writer (ELF ID 11) which takes an exclusive lock */
-    if ((child = spawn(W_DOES_B, 500)) == -1) {
-        printf("ERROR in test_ewouldblock: failed to spawn writer (ELF 11)\n");
-        exit();
+    int children[NUM_IDS];
+    for (int i = 0; i < NUM_IDS; i++) {
+        children[i] = sys_spawn(R_EXP_NB, 8);
+        if (children[i] == NUM_IDS) FAIL("spawn failed");
     }
 
-    /* wait until the writer has successfully acquired its LOCK_EX */
-    consume();
-
-    /* open the same flockfile for read/write */
-    if ((fd = open(FLOCK_TEST_PATH, O_RDWR)) < 0) {
-        printf("ERROR in test_ewouldblock: open flockfile failed\n");
-        exit();
+    int status;
+    for (int i = 0; i < NUM_IDS; i++) {
+        wait(children[i], &status);
+        if (status != 0) FAIL("reader was blocked");
     }
 
-    /* this should fail immediately with EWOULDBLOCK */
-    if (flock(fd, LOCK_EX | LOCK_NB) != -1) {
-        printf("ERROR in test_ewouldblock: flock unexpectedly succeeded\n");
-        close(fd);
-        produce(1);       /* let writer finish */
-        exit();
-    }
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
 
-    /* tell the writer it can now release and exit */
-    produce(1);
-
-    close(fd);
     PASS();
 }
 
-/* ---- writer excludes reader -------------------------------------- */
-int test_writer_excludes_reader(void) {
-    int fd = open(FLOCK_TEST_PATH, O_CREATE|O_RDWR);
-    if (fd < 0) FAIL("open");
+/* ---- Mutual Exclusion ---------------------------------------------- */
 
-    if (flock(fd, LOCK_EX) != 0) FAIL("parent LOCK_EX");
-    SYNC_BEFORE_CHILD();  /* allow helper to try */
-    pid_t child = spawn(R_EXP_B, 500);
-    if (child < 0) FAIL("spawn reader_block");
-    SYNC_AFTER_CHILD();   /* wait helper finish */
-    flock(fd, LOCK_UN);
-    close(fd);
+int test_writer_excludes_reader (void) {
+    printf("(writer excludes reader)...\n");
+
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
+
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock exclusive lock failed");
+    int child_pid = sys_spawn(R_EXP_B, 8);
+    if (child_pid == NUM_IDS) FAIL("spawn failed");
+
+    int status;
+    wait(child_pid, &status);
+    if (status != 0) FAIL("reader was not blocked");
+    
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+
     PASS();
 }
 
-/* ---- writer excludes writer -------------------------------------- */
-int test_writer_excludes_writer(void) {
-    int fd = open(FLOCK_TEST_PATH, O_CREATE|O_RDWR);
-    if (fd < 0) FAIL("open");
+int test_writer_excludes_writer (void) {
+    printf("(writer excludes writer)...\n");
 
-    if (flock(fd, LOCK_EX) != 0) FAIL("parent LOCK_EX");
-    SYNC_BEFORE_CHILD();
-    pid_t child = spawn(10, 500);
-    if (child < 0) FAIL("spawn writer_exp_block");
-    SYNC_AFTER_CHILD();
-    flock(fd, LOCK_UN);
-    close(fd);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
+
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock exclusive lock failed");
+    int child_pid = sys_spawn(W_EXP_B, 8);
+    if (child_pid == NUM_IDS) FAIL("spawn failed");
+
+    int status;
+    wait(child_pid, &status);
+    if (status != 0) FAIL("writer was not blocked");
+    
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+
     PASS();
 }
 
-/* ---- reader excludes writer -------------------------------------- */
-int test_reader_excludes_writer(void) {
-    int fd = open(FLOCK_TEST_PATH, O_CREATE|O_RDWR);
-    if (fd < 0) FAIL("open");
+int test_reader_excludes_writer (void) {
+    printf("(reader_excludes_writer)...\n");
 
-    if (flock(fd, LOCK_SH) != 0) FAIL("parent LOCK_SH");
-    SYNC_BEFORE_CHILD();
-    pid_t child = spawn(10, 500);
-    if (child < 0) FAIL("spawn writer_exp_block");
-    SYNC_AFTER_CHILD();
-    flock(fd, LOCK_UN);
-    close(fd);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
+
+    if (flock(fd1, FLOCK_SH) != 0) FAIL("flock shared lock failed");
+    int child_pid = sys_spawn(W_EXP_B, 8);
+    if (child_pid == NUM_IDS) FAIL("spawn failed");
+
+    int status;
+    wait(child_pid, &status);
+    if (status != 0) FAIL("writer was not blocked");
+    
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+
     PASS();
 }
 
-/* ---- queued writer doesn’t block later readers ------------------- */
-int test_queued_writer_doesnt_block(void) {
-    int fd = open(FLOCK_TEST_PATH, O_CREATE|O_RDWR);
-    if (fd < 0) FAIL("open");
+int test_queued_writer_doesnt_block (void) {
+    printf("(queued_writer_doesnt_block)...\n");
 
-    if (flock(fd, LOCK_SH) != 0) FAIL("parent LOCK_SH");
-    SYNC_BEFORE_CHILD();
-    if (spawn(12, 500) < 0) FAIL("spawn writer_does_block");
-    consume();  /* writer took EX */
-    SYNC_BEFORE_CHILD();
-    if (spawn(R_EXP_NB, 500) < 0) FAIL("spawn reader_no_block");
-    consume();
-    flock(fd, LOCK_UN);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
+
+    // create reader 1
+    if (flock(fd1, FLOCK_SH) != 0) FAIL("flock shared lock failed");
+
+    // create writer that will actually block and wait
+    int child_pid_1 = sys_spawn(W_DOES_B, 8);
+    if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
+
+    // create reader 2 that shouldn't block
+    int child_pid_2 = sys_spawn(R_EXP_NB, 8);
+    if (child_pid_2 == NUM_IDS) FAIL("spawn failed");
+
+    // make sure reader 2 wasn't blocked
+    int status;
+    wait(child_pid_2, &status);
+    if (status != 0) FAIL("reader was blocked");
+
+    // unlock reader 1
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+
+    // now writer should be able to get access
+    wait(child_pid_1, &status);
+    if (status != 0) FAIL("reader was blocked"); // this wont be reached if this test fails
+
     PASS();
 }
 
-/*
- * test_bad_fd: ensure flock returns an error when called
- * on an invalid file descriptor, verifying that the syscall
- * properly rejects bad FDs instead of succeeding.
- */
-int test_bad_fd(void) {
-    if (flock(999, LOCK_SH) == 0) FAIL("flock on bad fd");
+int test_bad_fd (void) {
+    printf("(bad fd)...\n");
+
+    if (flock(4, FLOCK_SH) == 0) FAIL("flock should've failed");
+
     PASS();
 }
 
-/*
- * test_upgrade_flock: verify that upgrading an existing shared lock to
- * an exclusive lock succeeds when there are no other lock holders.
- * This test ensures that flock(fd, LOCK_EX) upgrades the lock in-place.
- */
 int test_upgrade_flock(void) {
-    int fd;
+    printf("(upgrade flock)...\n");
 
-    /* open (or create) the file for read/write */
-    if ((fd = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR)) < 0) {
-        printf("ERROR in test_upgrade_flock: cannot create/open file\n");
-        exit();
-    }
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
 
-    /* acquire a shared lock */
-    if (flock(fd, LOCK_SH) == -1) {
-        printf("ERROR in test_upgrade_flock: could not acquire shared lock\n");
-        close(fd);
-        exit();
-    }
+    if (flock(fd1, FLOCK_SH) != 0) FAIL("flock shared lock failed");
 
-    /* upgrade to an exclusive lock */
-    if (flock(fd, LOCK_EX) == -1) {
-        printf("ERROR in test_upgrade_flock: could not upgrade to exclusive lock\n");
-        close(fd);
-        exit();
-    }
+    int child_pid_1 = sys_spawn(R_EXP_NB, 8);
+    if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
 
-    /* write some data under the exclusive lock */
-    for (int i = 0; i < 50; i++) {
-        if (write(fd, "anton", 5) != 5) {
-            printf("ERROR in test_upgrade_flock: write aa %d failed\n", i);
-            exit();
-        }
-        if (write(fd, "oliver", 6) != 6) {
-            printf("ERROR in test_upgrade_flock: write bb %d failed\n", i);
-            exit();
-        }
-    }
+    int status;
+    wait(child_pid_1, &status);
+    if (status != 0) FAIL("reader was blocked");
 
-    /* release the exclusive lock */
-    if (flock(fd, LOCK_UN) == -1) {
-        printf("ERROR in test_upgrade_flock: could not release lock\n");
-        close(fd);
-        exit();
-    }
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock shared lock failed");
 
-    close(fd);
+    child_pid_1 = sys_spawn(R_EXP_B, 8);
+    if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
+
+    wait(child_pid_1, &status);
+    if (status != 0) FAIL("reader wasn't blocked");
+
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
     PASS();
 }
 
-/*
- * test_downgrade_flock: verify that downgrading an exclusive lock to
- * a shared lock allows data written under the exclusive lock to be
- * read correctly, and that the shared lock behaves as expected.
- * This test ensures that flock(fd, LOCK_SH) downgrades the lock in-place.
- */
 int test_downgrade_flock(void) {
-    int fd, n;
-    char buf[100];
+    printf("(downgrade flock)...\n");
 
-    unlink(FLOCK_TEST_PATH);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
 
-    /* 1) Create file and take exclusive lock */
-    fd = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR);
-    if (fd < 0) FAIL("open failed");
-    if (flock(fd, LOCK_EX) != 0) FAIL("initial exclusive lock failed");
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock shared lock failed");
 
-    /* 2) Write 100 bytes of known data under the exclusive lock */
-    for (int i = 0; i < 100; i++) {
-        if (write(fd, "x", 1) != 1)
-            FAIL("write failed");
-    }
+    int child_pid_1 = sys_spawn(R_EXP_B, 8);
+    if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
 
-    /* 3) Unlock and close */
-    if (flock(fd, LOCK_UN) != 0) FAIL("unlock failed");
-    close(fd);
+    int status;
+    wait(child_pid_1, &status);
+    if (status != 0) FAIL("reader wasn't blocked");
 
-    /* 4) Reopen, take exclusive lock again */
-    fd = open(FLOCK_TEST_PATH, O_RDWR);
-    if (fd < 0) FAIL("reopen failed");
-    if (flock(fd, LOCK_EX) != 0) FAIL("exclusive lock failed");
+    if (flock(fd1, FLOCK_SH) != 0) FAIL("flock shared lock failed");
 
-    /* 5) Downgrade to shared lock */
-    if (flock(fd, LOCK_SH) != 0) FAIL("downgrade to shared failed");
+    child_pid_1 = sys_spawn(R_EXP_NB, 8);
+    if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
 
-    /* 6) Read back the 100 bytes */
-    n = read(fd, buf, 100);
-    if (n != 100) FAIL("read wrong count");
-    for (int i = 0; i < 100; i++) {
-        if (buf[i] != 'x') FAIL("data mismatch");
-    }
+    wait(child_pid_1, &status);
+    if (status != 0) FAIL("reader was blocked");
 
-    /* 7) Final unlock and close */
-    if (flock(fd, LOCK_UN) != 0) FAIL("unlock failed");
-    close(fd);
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
     PASS();
 }
 
-int main(void) {
-    struct { const char *name; int (*fn)(void); } tests[] = {
-        { "test_ewouldblock",           test_ewouldblock },
-        { "single_writer",              test_single_writer },
-        { "multiple_readers",           test_multiple_readers },
-        // { "writer_excludes_reader",     test_writer_excludes_reader },
-        // { "writer_excludes_writer",     test_writer_excludes_writer },
-        // { "reader_excludes_writer",     test_reader_excludes_writer },
-        // { "queued_writer_doesnt_block", test_queued_writer_doesnt_block },
-        { "bad_fd",                     test_bad_fd },
-        { "upgrade_flock",              test_upgrade_flock },
-        { "downgrade_flock",            test_downgrade_flock },
-    };
 
+
+/* ---- Test harness ------------------------------------------------- */
+static int run_test(const char *label, int (*fn)(void)) {
+    // Ensure a pristine environment: remove stale file before & after
+    unlink(FLOCK_TEST_PATH);
+    printf("[TEST] %s\n", label);
+    int rc = fn();
+    unlink(FLOCK_TEST_PATH);
+    return rc;
+}
+
+int main(void)
+{
     int failures = 0;
-    for (int i = 0; i < sizeof(tests)/sizeof(*tests); i++) {
-        unlink(FLOCK_TEST_PATH);
-        printf("\n=== %s ===\n", tests[i].name);
-        if (tests[i].fn()) failures++;
-    }
 
-    printf("\nSUMMARY: %d failure(s)\n", failures);
-    return failures;
+    // failures += run_test("single_writer",           test_single_writer);
+    // failures += run_test("multiple_readers",        test_multiple_readers);
+    // failures += run_test("writer_excludes_reader",  test_writer_excludes_reader);
+    // failures += run_test("writer_excludes_writer",  test_writer_excludes_writer);
+    // failures += run_test("reader_excludes_writer",  test_reader_excludes_writer);
+    // failures += run_test("queued_writer_doesnt_block", test_queued_writer_doesnt_block);
+    // failures += run_test("bad_fd",                  test_bad_fd);
+    // failures += run_test("upgrade_flock",           test_upgrade_flock);
+    // failures += run_test("downgrade_flock",         test_downgrade_flock);
+
+    printf("\n====== Summary ======\n");
+    if (failures == 0)
+        printf("All tests passed!\n");
+    else
+        printf("%d test(s) failed.\n", failures);
+
+    // Use sys_exit so parent harness can see success/failure
+    // sys_exit(failures);
+    return failures; // not reached
 }

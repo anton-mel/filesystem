@@ -197,3 +197,37 @@ void sys_readline(tf_t *tf)
     // norify interrupt for success
 }
 
+void sys_exit(tf_t *tf) {
+    int status = syscall_get_arg2(tf);
+
+    proc_exit(status);
+
+    syscall_set_errno(tf, E_SUCC);
+}
+
+void sys_wait(tf_t *tf) {
+    int        pid = syscall_get_arg2(tf);
+    uintptr_t  status_uva  = syscall_get_arg3(tf);
+    int        status_kva;        
+
+    // KERN_INFO("sys_wait: pid %d, status_uva %p\n", pid, status_uva);
+
+    int rc = proc_wait(pid, &status_kva);
+
+    if (rc < 0) {
+        syscall_set_errno(tf, E_INVAL_PID);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+
+    if (pt_copyout(&status_kva, get_curid(),
+                   status_uva, sizeof(int)) != sizeof(int)) {
+        syscall_set_errno(tf, E_MEM);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+
+    /* 3. Success */
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, 0);
+}

@@ -249,4 +249,20 @@ static gcc_inline int sys_flock(int fd, int op)
     return errno ? -1 : 0;
 }
 
+static gcc_inline int sys_wait(int pid, int *statusp)
+{
+    int errno, ret;
+
+    asm volatile ("int %2"
+                  : "=a"(errno), "=b"(ret)
+                  : "i"(T_SYSCALL),
+                    "a"(SYS_wait),  // syscall number
+                    "b"(pid),       // arg1: child PID
+                    "c"(statusp)    // arg2: user pointer to status
+                  : "cc", "memory");
+
+    // On success, errno==0 and ret==0; on failure ret is undefined
+    return errno ? -1 : ret;
+}
+
 #endif  /* !_USER_SYSCALL_H_ */

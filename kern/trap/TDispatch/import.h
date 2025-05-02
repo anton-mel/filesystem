@@ -13,6 +13,8 @@ void sys_readline(tf_t *tf);
 void sys_consume(tf_t *tf);
 void sys_produce(tf_t *tf);
 void sys_flock(tf_t *tf);
+void sys_exit(tf_t *tf);
+void sys_wait(tf_t *tf);
 
 #endif  /* _KERN_ */
 

@@ -103,6 +103,37 @@ void syscall_dispatch(tf_t *tf)
     case SYS_readline:
         sys_readline(tf);
         break;
+    case SYS_exit:
+        /*
+         * Exit the current process.
+         *
+         * Parameters:
+         *   a[0]: the exit code
+         *
+         * Return:
+         *   None.
+         *
+         * Error:
+         *   None.
+         */
+        // KERN_INFO("EXIThello!!!\n");
+        sys_exit(tf);
+        break;
+    case SYS_wait:
+        /*
+         * Wait for a child process to exit.
+         *
+         * Parameters:
+         *   a[0]: the process ID of the child
+         *   a[1]: the exit code of the child
+         * Return:
+         *   None.
+         *
+         * Error:
+         *   E_INVAL_PID
+         */
+        sys_wait(tf);
+        break;
     default:
         syscall_set_errno(tf, E_INVAL_CALLNR);
     }

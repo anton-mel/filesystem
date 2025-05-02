@@ -60,6 +60,8 @@ struct file {
 #define mkdir(path)       sys_mkdir((path))
 #define chdir(path)       sys_chdir((path))
 #define flock(fd, op)     sys_flock((fd), (op))
+// #define exit(code)        sys_exit((code))
+#define wait(pid, status) sys_wait((pid), (status))
 
 #define T_NONE 0  // Debug
 #define T_DIR  1  // Directory

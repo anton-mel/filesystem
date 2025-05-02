@@ -48,6 +48,8 @@ enum __syscall_nr {
     SYS_consume,
     // Final Project
     SYS_flock,
+    SYS_exit,
+    SYS_wait,
 
     MAX_SYSCALL_NR  /* XXX: always put it at the end of __syscall_nr */
 };
