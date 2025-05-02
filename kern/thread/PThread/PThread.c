@@ -175,9 +175,8 @@ void thread_suspend(spinlock_t *lock)
 	tcb_set_state(curid, TSTATE_SLEEP);
 
 	unsigned int newpid = tqueue_dequeue(NUM_IDS);
-    KERN_ASSERT(new_pid != NUM_IDS);
 	tcb_set_state(newpid, TSTATE_RUN); 
-	set_curid(new_pid);
+	set_curid(newpid);
 
 	if (curid != newpid) {
         spinlock_release(&sched_lk);
