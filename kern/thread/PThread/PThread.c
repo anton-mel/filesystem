@@ -175,14 +175,15 @@ void thread_suspend(spinlock_t *lock)
 	tcb_set_state(curid, TSTATE_SLEEP);
 
 	unsigned int newpid = tqueue_dequeue(NUM_IDS);
+    KERN_ASSERT(new_pid != NUM_IDS);
 	tcb_set_state(newpid, TSTATE_RUN); 
-	set_curid(curid);
+	set_curid(new_pid);
 
-	if (curid == newpid) {
+	if (curid != newpid) {
         spinlock_release(&sched_lk);
+		kctx_switch(curid, newpid); 
 	} else {
 		spinlock_release(&sched_lk);
-		kctx_switch(curid, newpid); 
 	}
 }
 
