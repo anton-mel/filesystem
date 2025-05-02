@@ -24,28 +24,28 @@ int test_single_writer (void) {
     PASS();
 }
 
-int test_multiple_readers (void) {
-    printf("(multiple readers)...\n");
+// int test_multiple_readers (void) {
+//     printf("(multiple readers)...\n");
 
-    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
-    if (fd1 < 0) FAIL("open failed");
+//     int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+//     if (fd1 < 0) FAIL("open failed");
 
-    int children[NUM_IDS];
-    for (int i = 0; i < NUM_IDS; i++) {
-        children[i] = sys_spawn(R_EXP_NB, 8);
-        if (children[i] == NUM_IDS) FAIL("spawn failed");
-    }
+//     int children[NUM_IDS];
+//     for (int i = 0; i < NUM_IDS; i++) {
+//         children[i] = sys_spawn(R_EXP_NB, 8);
+//         if (children[i] == NUM_IDS) FAIL("spawn failed");
+//     }
 
-    // int status;
-    for (int i = 0; i < NUM_IDS; i++) {
-        // sys_wait(children[i], &status);
-        // if (status != 0) FAIL("reader was blocked");
-    }
+//     // int status;
+//     for (int i = 0; i < NUM_IDS; i++) {
+//         // sys_wait(children[i], &status);
+//         // if (status != 0) FAIL("reader was blocked");
+//     }
 
-    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+//     if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
 
-    PASS();
-}
+//     PASS();
+// }
 
 /* ---- Mutual Exclusion ---------------------------------------------- */
 
@@ -79,9 +79,10 @@ int test_writer_excludes_writer (void) {
     int child_pid = sys_spawn(W_EXP_B, 8);
     if (child_pid == NUM_IDS) FAIL("spawn failed");
 
-    // int status;
-    // sys_wait(child_pid, &status);
-    // if (status != 0) FAIL("writer was not blocked");
+    SYNC_BEFORE_CHILD();
+    int child_pid = sys_spawn(W_EXP_B, 8);
+    if (child_pid == NUM_IDS) FAIL("spawn failed");
+    SYNC_AFTER_CHILD();
     
     if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
 
@@ -98,9 +99,10 @@ int test_reader_excludes_writer (void) {
     int child_pid = sys_spawn(W_EXP_B, 8);
     if (child_pid == NUM_IDS) FAIL("spawn failed");
 
-    // int status;
-    // sys_wait(child_pid, &status);
-    // if (status != 0) FAIL("writer was not blocked");
+    SYNC_BEFORE_CHILD();
+    int child_pid = sys_spawn(W_EXP_B, 8);
+    if (child_pid == NUM_IDS) FAIL("spawn failed");
+    SYNC_AFTER_CHILD();
     
     if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
 
@@ -110,31 +112,24 @@ int test_reader_excludes_writer (void) {
 int test_queued_writer_doesnt_block (void) {
     printf("(queued_writer_doesnt_block)...\n");
 
-    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR);
     if (fd1 < 0) FAIL("open failed");
 
-    // create reader 1
+    // Reader 1 acquires shared lock
     if (flock(fd1, FLOCK_SH) != 0) FAIL("flock shared lock failed");
 
-    // create writer that will actually block and wait
+    SYNC_BEFORE_CHILD();
     int child_pid_1 = sys_spawn(W_DOES_B, 8);
     if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
 
-    // create reader 2 that shouldn't block
+    SYNC_BEFORE_CHILD();
     int child_pid_2 = sys_spawn(R_EXP_NB, 8);
     if (child_pid_2 == NUM_IDS) FAIL("spawn failed");
+    SYNC_AFTER_CHILD(); // Reader 2 done
 
-    // make sure reader 2 wasn't blocked
-    // int status;
-    // sys_wait(child_pid_2, &status);
-    // if (status != 0) FAIL("reader was blocked");
-
-    // unlock reader 1
     if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
 
-    // now writer should be able to get access
-    // sys_wait(child_pid_1, &status);
-    // if (status != 0) FAIL("reader was blocked"); // this wont be reached if this test fails
+    SYNC_AFTER_CHILD(); // Writer proceeds
 
     PASS();
 }
@@ -150,54 +145,50 @@ int test_bad_fd (void) {
 int test_upgrade_flock(void) {
     printf("(upgrade flock)...\n");
 
-    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR);
     if (fd1 < 0) FAIL("open failed");
 
     if (flock(fd1, FLOCK_SH) != 0) FAIL("flock shared lock failed");
 
+    SYNC_BEFORE_CHILD();
     int child_pid_1 = sys_spawn(R_EXP_NB, 8);
     if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
+    SYNC_AFTER_CHILD();
 
-    // int status;
-    // sys_wait(child_pid_1, &status);
-    // if (status != 0) FAIL("reader was blocked");
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock upgrade to exclusive failed");
 
-    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock shared lock failed");
-
+    SYNC_BEFORE_CHILD();
     child_pid_1 = sys_spawn(R_EXP_B, 8);
     if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
-
-    // sys_wait(child_pid_1, &status);
-    // if (status != 0) FAIL("reader wasn't blocked");
+    SYNC_AFTER_CHILD();
 
     if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+
     PASS();
 }
 
 int test_downgrade_flock(void) {
     printf("(downgrade flock)...\n");
 
-    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR);
     if (fd1 < 0) FAIL("open failed");
 
-    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock shared lock failed");
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock exclusive lock failed");
 
+    SYNC_BEFORE_CHILD();
     int child_pid_1 = sys_spawn(R_EXP_B, 8);
     if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
+    SYNC_AFTER_CHILD();
 
-    // int status;
-    // sys_wait(child_pid_1, &status);
-    // if (status != 0) FAIL("reader wasn't blocked");
+    if (flock(fd1, FLOCK_SH) != 0) FAIL("flock downgrade to shared failed");
 
-    if (flock(fd1, FLOCK_SH) != 0) FAIL("flock shared lock failed");
-
+    SYNC_BEFORE_CHILD();
     child_pid_1 = sys_spawn(R_EXP_NB, 8);
     if (child_pid_1 == NUM_IDS) FAIL("spawn failed");
-
-    // sys_wait(child_pid_1, &status);
-    // if (status != 0) FAIL("reader was blocked");
+    SYNC_AFTER_CHILD();
 
     if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+
     PASS();
 }
 
@@ -217,15 +208,15 @@ int main(void)
 {
     int failures = 0;
 
-    // failures += run_test("single_writer",           test_single_writer);
-    // failures += run_test("multiple_readers",        test_multiple_readers);
+    failures += run_test("single_writer",           test_single_writer);
+    failures += run_test("multiple_readers",        test_multiple_readers);
     failures += run_test("writer_excludes_reader",  test_writer_excludes_reader);
-    // failures += run_test("writer_excludes_writer",  test_writer_excludes_writer);
-    // failures += run_test("reader_excludes_writer",  test_reader_excludes_writer);
-    // failures += run_test("queued_writer_doesnt_block", test_queued_writer_doesnt_block);
-    // failures += run_test("bad_fd",                  test_bad_fd);
-    // failures += run_test("upgrade_flock",           test_upgrade_flock);
-    // failures += run_test("downgrade_flock",         test_downgrade_flock);
+    failures += run_test("writer_excludes_writer",  test_writer_excludes_writer);
+    failures += run_test("reader_excludes_writer",  test_reader_excludes_writer);
+    failures += run_test("queued_writer_doesnt_block", test_queued_writer_doesnt_block);
+    failures += run_test("bad_fd",                  test_bad_fd);
+    failures += run_test("upgrade_flock",           test_upgrade_flock);
+    failures += run_test("downgrade_flock",         test_downgrade_flock);
 
     printf("\n========== Summary =========\n");
     if (failures == 0)

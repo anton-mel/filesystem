@@ -12,6 +12,31 @@ USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
 USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
 KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
 
+USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
+KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+
+USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
+KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+
+USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
+KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+
+USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
+KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+
+USER_FLOCKSTALL_SRC	+= $(USER_DIR)/flocktests/flockstall.c
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_SRC))
+USER_FLOCKSTALL_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKSTALL_OBJ))
+KERN_BINFILES	+= $(USER_OBJDIR)/flocktests/flockstall
+
 flocktests: $(USER_OBJDIR)/flocktests/flocktests $(USER_OBJDIR)/flocktests/flockstall
 
 $(USER_OBJDIR)/flocktests/flocktests: $(USER_LIB_OBJ) $(USER_FLOCKTESTS_OBJ)
