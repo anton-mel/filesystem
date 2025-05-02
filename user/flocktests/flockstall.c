@@ -18,6 +18,8 @@
 #include <file.h>
 #include <gcc.h>
 
+#include "flocktests_common.h"
+
 #define exit(...) return -1
 
 char buf[8192];
@@ -25,9 +27,9 @@ char buf[8192];
 int main(int argc, char *argv[]) {
     int fd;
 
-    printf("+++ flockstall: initiating stall sequence +++\n\n");
+    printf("[D] flockstall: initiating stall sequence\n");
 
-    fd = open("flockfile", O_WRONLY);
+    fd = open(FLOCK_TEST_PATH, O_WRONLY);
     if (fd < 0) {
         printf("flockstall ERROR: could not open file.\n");
         exit();
@@ -43,13 +45,13 @@ int main(int argc, char *argv[]) {
     produce(1);
 
     /* Simulate workload */
-    // for (int i = 0; i < 80; ++i) {
-    //     if (write(fd, "STALLLOOP--", 20) != 20 || write(fd, "..PAUSE..", 20) != 20) {
-    //         printf("flockstall write error at iteration %d\n", i);
-    //         close(fd);
-    //         exit();
-    //     }
-    // }
+    for (int i = 0; i < 80; ++i) {
+        if (write(fd, "STALLLOOP--", 20) != 20 || write(fd, "..PAUSE..", 20) != 20) {
+            printf("flockstall write error at iteration %d\n", i);
+            close(fd);
+            exit();
+        }
+    }
 
     /* Wait for coordination signal */
     consume();
@@ -62,6 +64,6 @@ int main(int argc, char *argv[]) {
 
     close(fd);
 
-    printf("+++ flockstall: completed successfully +++\n\n");
+    printf("[D] flockstall: completed successfully\n");
     return 0;
 }
