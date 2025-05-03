@@ -31,7 +31,7 @@ In this lab, we add the file system support to mCertiKOS. We have already implem
 | Oliver Li      | - Part 3                                                       |
 | Oliver Li      | - Part 4                                                       |
 
-### 🛠How to Run
+### How to Run
 
 This assignment is organized into four parts, each located in a separate branch: `lab5part1`, `lab5part2`, `lab5part3`, and `lab5part4`. To view the implementation of a specific part, please switch to the corresponding branch.
 
