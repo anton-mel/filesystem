@@ -93,14 +93,26 @@ unsigned int container_can_consume(unsigned int id, unsigned int n)
  */
 unsigned int container_split(unsigned int id, unsigned int quota)
 {
-    unsigned int child, nc;
+    unsigned int child = NUM_IDS, nc;
 
     spinlock_acquire(&container_lks[id]);
 
     nc = CONTAINER[id].nchildren;
-    child = id * MAX_CHILDREN + 1 + nc;  // container index for the child process
 
-    if (NUM_IDS <= child) {
+    if (nc == MAX_CHILDREN) {
+        spinlock_release(&container_lks[id]);
+        return NUM_IDS;
+    }
+
+    for (int i = 0; i < NUM_IDS; i++) {
+        if (CONTAINER[i].used == 0) {
+            child = i;
+            break;
+        }
+    }
+
+    if (child == NUM_IDS) {
+        spinlock_release(&container_lks[id]);
         return NUM_IDS;
     }
 

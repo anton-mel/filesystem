@@ -21,3 +21,8 @@ int consume(void)
 {
     return sys_consume();
 }
+
+int wait(int pid, int *statusp)
+{
+    return sys_wait(pid, statusp);
+}

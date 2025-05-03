@@ -8,5 +8,6 @@ void yield(void);
 
 void produce(int val);
 int consume(void);
+int wait(int pid, int *status);
 
 #endif  /* !_USER_PROC_H_ */

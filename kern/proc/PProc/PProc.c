@@ -88,7 +88,7 @@ int proc_wait(unsigned int pid, int *status)
     }
 
     spinlock_acquire(&process_lks[pid]);
-    while (!exited[pid]) {
+    while (exited[pid] == FALSE) {
         thread_sleep(&return_value[pid], &process_lks[pid]);
     }
     *status = return_value[pid];

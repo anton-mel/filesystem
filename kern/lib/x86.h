@@ -108,7 +108,7 @@
 #define NUM_CPUS 8
 #define NUM_IDS 64
 #define MagicNumber 1048577
-#define MAX_CHILDREN 3
+#define MAX_CHILDREN 20
 
 uintptr_t read_esp(void);
 uint32_t read_ebp(void);

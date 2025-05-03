@@ -103,11 +103,11 @@ void sys_spawn(tf_t *tf)
         syscall_set_retval1(tf, NUM_IDS);
         return;
     }
-    else if (NUM_IDS < curid * MAX_CHILDREN + 1 + MAX_CHILDREN) {
-        syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
-        syscall_set_retval1(tf, NUM_IDS);
-        return;
-    }
+    // else if (NUM_IDS < curid * MAX_CHILDREN + 1 + MAX_CHILDREN) {
+    //     syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
+    //     syscall_set_retval1(tf, NUM_IDS);
+    //     return;
+    // }
     else if (container_get_nchildren(curid) == MAX_CHILDREN) {
         syscall_set_errno(tf, E_INVAL_CHILD_ID);
         syscall_set_retval1(tf, NUM_IDS);

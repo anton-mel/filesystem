@@ -10,10 +10,11 @@
 #define FLOCK_NB  (1U << 3)   /* non-blocking acquire   */
 
 #define FLOCK_EWOULDBLOCK  (-2)
-#define FLOCK_TEST_PATH "tmp.tat"
+#define FLOCK_TEST_PATH "/tmp/tmp.dat"
 
 #define R_EXP_NB 7
 #define R_EXP_B 8
 #define W_EXP_NB 9
 #define W_EXP_B 10
+
 #define W_DOES_B 11
