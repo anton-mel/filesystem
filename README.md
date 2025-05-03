@@ -51,7 +51,6 @@ Calling convention is identical to Linux.
    `active_writer` **or** `active_readers > 0` (never both).
 * **Writer‑preferred policy**
    As soon as a writer queues, *new* shared locks are blocked — avoids writer starvation.
-* Each `flock_acquire()` / `flock_release()` section is protected by a **spin‑lock**; sleeping is done with two CVs (`cv_readers`, `cv_writers`).
 
 State diagram
 
