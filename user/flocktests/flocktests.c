@@ -150,6 +150,19 @@ int test_bad_fd (void) {
     PASS();
 }
 
+int test_double_unlock (void) {
+    printf("(double unlock)...\n");
+
+    int fd1 = open(FLOCK_TEST_PATH, O_CREATE);
+    if (fd1 < 0) FAIL("open failed");
+
+    if (flock(fd1, FLOCK_EX) != 0) FAIL("flock exclusive lock failed");
+    if (flock(fd1, FLOCK_UN) != 0) FAIL("flock unlock failed");
+    if (flock(fd1, FLOCK_UN) == 0) FAIL("second flock unlock succeeded");
+
+    PASS();
+}
+
 int test_upgrade_flock(void) {
     printf("(upgrade flock)...\n");
 
@@ -228,8 +241,9 @@ int main(void)
     failures += run_test("writer_excludes_reader",  test_writer_excludes_reader);
     failures += run_test("writer_excludes_writer",  test_writer_excludes_writer);
     failures += run_test("reader_excludes_writer",  test_reader_excludes_writer);
-    failures += run_test("queued_writer_does_block", test_queued_writer_does_block);
+    failures += run_test("queued_writer_does_block",test_queued_writer_does_block);
     failures += run_test("bad_fd",                  test_bad_fd);
+    failures += run_test("double_unlock",           test_double_unlock);
     failures += run_test("upgrade_flock",           test_upgrade_flock);
     failures += run_test("downgrade_flock",         test_downgrade_flock);
 
