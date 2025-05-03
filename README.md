@@ -10,15 +10,15 @@ Debug with gdb: make qemu-gdb / make qemu-nox-gdb
 3. brief description of what you have implemented
 4. and anything else you would like us to know -->
 
-# 🧪 Lab 4: Multicore and Preemption
+# Lab 4: Multicore and Preemption
 
 In the first part of this lab, we add multiprocessor support to mCertiKOS. Next, we implement a preemptive scheduler, and make some designated parts of the kernel preemtable by turning on interrupts during those parts of kernel code. Last, we designed and implemented the producer-consumer problem (also known as the bounded-buffer problem) with shared objects and condition variables.
 
-## 👥 Team: Anton Melnychuk and Oliver Li
+## Team: Anton Melnychuk and Oliver Li
 
 Everyone contributed equally to the assignment.
 
-### 📋 Workload Distribution
+### Workload Distribution
 
 | Name           | Tasks                                                          |
 |----------------|----------------------------------------------------------------|
@@ -31,7 +31,7 @@ Everyone contributed equally to the assignment.
 | Oliver Li      | - Read Chapter 5 [Synchronizing Access to Shared Objects]      |
 |                | - Part 4: The Producer-Consumer Problem                        |
 
-### 🛠️ How to Run
+### How to Run
 
 This assignment is organized into four parts, each located in a separate branch: `lab4part1`, `lab4part2`, `lab4part3`, and `lab4part4`. To view the implementation of a specific part, please switch to the corresponding branch.
 
@@ -46,7 +46,7 @@ Refer to the screenshot below for the expected output.
 > [!NOTE]
 > If the kernel occasionally panics in th initialization stage, this error is not related to this solution and was present in the starter code. Read https://edstem.org/us/courses/72435/discussion/6421756 post.
 
-### ✅ Final Results
+### Final Results
 
 ![Final Output](./static/proof.png)
 
