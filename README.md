@@ -49,8 +49,7 @@ Calling convention is identical to Linux.
 * File’s inode stores a `struct flock` (state + two wait‑queues).
 * Two kinds of owners
    `active_writer` or `active_readers > 0` (never both).
-* Writer‑preferred policy
-   As soon as a writer queues, *new* shared locks are blocked — avoids writer starvation.
+* Writer‑preferred policy. As soon as a writer queues, *new* shared locks are blocked — avoids writer starvation.
 
 State diagram
 
