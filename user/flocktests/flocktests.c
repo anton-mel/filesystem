@@ -4,13 +4,6 @@
 #include <file.h>
 #include "flocktests_common.h"
 
-// Oliver TODO:
-// Check how they did the tests in ftests
-// do the same linking, create tests
-// that covers every possible case to prove
-// that it is working. If the FLOCK is not working
-// debug it. My implemntation might be wrong.
-
 #define FAIL(msg) do { printf("FAIL: %s\n", msg); return 1; } while (0)
 #define PASS() do { printf("PASS\n"); return 0; } while (0)
 
