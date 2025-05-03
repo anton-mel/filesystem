@@ -46,10 +46,10 @@ Calling convention is identical to Linux.
 
 ## 2 · How It Works Internally
 
-* File’s **inode** stores a `struct flock` (state + two wait‑queues).
+* File’s inode stores a `struct flock` (state + two wait‑queues).
 * Two kinds of owners
-   `active_writer` **or** `active_readers > 0` (never both).
-* **Writer‑preferred policy**
+   `active_writer` or `active_readers > 0` (never both).
+* Writer‑preferred policy
    As soon as a writer queues, *new* shared locks are blocked — avoids writer starvation.
 
 State diagram
@@ -80,9 +80,9 @@ Maximum simultaneous readers is limited only by thread count; no hardcoded buffe
 
 ## 4. Flock Notes & Design Choices
 
-`flock()` is an **built-in library** to use: a thread calls `flock(fd, OP)` with `OP = LOCK_SH` (shared), `LOCK_EX` (exclusive), or `LOCK_UN` (unlock). If the requested lock is available it is granted instantly; otherwise the kernel parks the caller on a condition variable and lets other threads run until the lock is released. Appending `LOCK_NB` flips the behaviour: the call becomes “try once,” returning immediately with `‑EWOULDBLOCK` instead of blocking.
+`flock()` is an built-in library to use: a thread calls `flock(fd, OP)` with `OP = LOCK_SH` (shared), `LOCK_EX` (exclusive), or `LOCK_UN` (unlock). If the requested lock is available it is granted instantly; otherwise the kernel parks the caller on a condition variable and lets other threads run until the lock is released. Appending `LOCK_NB` flips the behaviour: the call becomes “try once,” returning immediately with `‑EWOULDBLOCK` instead of blocking.
 
-In out case, the lock lives in the inode—not the file descriptor—so every descriptor that refers to the same file synchronises on a single shared structure, while descriptors that refer to different inodes never interfere. Each file descriptor simply records the *kind* of lock the calling thread currently holds. A given inode is therefore always in one of three states: **idle**, **shared**, or **exclusive**; it can never hold shared and exclusive ownership at the same time.
+In out case, the lock lives in the inode—not the file descriptor—so every descriptor that refers to the same file synchronises on a single shared structure, while descriptors that refer to different inodes never interfere. Each file descriptor simply records the *kind* of lock the calling thread currently holds. A given inode is therefore always in one of three states: idle, shared, or exclusive; it can never hold shared and exclusive ownership at the same time.
 
 When the inode is in the exclusive state, every subsequent lock request—shared or exclusive—blocks (or returns `‑EWOULDBLOCK` if `LOCK_NB` was supplied). When in the shared state, additional shared requests are admitted immediately, but any incoming exclusive request is queued and, from that point on, no further readers are allowed until the writer has run—this writer‑first policy prevents writer starvation. Up‑ and down‑grading (`SH → EX` or `EX → SH`) follow the Linux rule: the caller briefly unlocks and re‑locks, so another thread could slip in between, but the internal state transitions and wake‑ups remain atomic and race‑free.
 
