@@ -25,6 +25,7 @@
         "cerrno": "c",
         "flock.h": "c",
         "file.h": "c",
-        "debug.h": "c"
+        "debug.h": "c",
+        "flocktests_common.h": "c"
     }
 }

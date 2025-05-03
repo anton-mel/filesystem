@@ -16,5 +16,4 @@
 #define R_EXP_B 8
 #define W_EXP_NB 9
 #define W_EXP_B 10
-
 #define W_DOES_B 11

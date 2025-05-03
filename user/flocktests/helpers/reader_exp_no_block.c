@@ -4,37 +4,43 @@
 #include <stdio.h>
 #include <syscall.h>
 #include <file.h>
-
 #include "flocktests_common.h"
 
 #define exit(...) return -1
-#define SYNC_BEFORE_CHILD() produce(1)
-#define SYNC_AFTER_CHILD()  consume()
 
 int main(void) {
-    int fd;
+    int fd, ret;
 
-    SYNC_AFTER_CHILD(); // Wait for main test to say: "you may try locking"
-
-    fd = open(FLOCK_TEST_PATH, O_RDWR);
+    fd = open(FLOCK_TEST_PATH, O_CREATE | O_RDWR);
     if (fd < 0) {
-        printf("reader_exp_no_block ERROR: open failed\n");
+        printf("reader_exp_no_block: open failed\n");
         exit();
     }
 
-    int ret = flock(fd, LOCK_SH | LOCK_NB);
-    if (ret == 0) {
-        printf("reader_exp_no_block: got shared lock (non-blocking)\n");
-    } else {
-        printf("reader_exp_no_block: failed to get shared lock (non-blocking)\n");
+    // should succeed immediately
+    ret = flock(fd, LOCK_SH | LOCK_NB);
+    if (ret != 0) {
+        printf("reader_exp_no_block: failed to get shared lock\n");
+        exit();
     }
 
-    produce(1); // Signal to test: done trying
+    // signal driver that we got the lock
+    produce(1);
 
-    if (ret == 0) {
-        flock(fd, LOCK_UN); // release if we held it
+    /* do some writes under lock */
+    for (int i = 0; i < 50; i++) {
+        if (write(fd, "oliver", 6) != 6)
+            exit();
     }
+
+    /* wait until the tester has tried its non‐blocking lock */
+    consume();
+
+    /* release the lock */
+    if (flock(fd, LOCK_UN) != 0)
+        exit();
 
     close(fd);
     return 0;
 }
+
