@@ -105,6 +105,8 @@ int test_reader_excludes_writer (void) {
     PASS();
 }
 
+/* ---- Primitive Starvation ---------------------------------------------- */
+
 int test_queued_writer_does_block (void) {
     printf("(queued_writer_does_block)...\n");
 
@@ -137,6 +139,8 @@ int test_queued_writer_does_block (void) {
 
     PASS();
 }
+
+/* ---- Edge Cases ---------------------------------------------- */
 
 int test_bad_fd (void) {
     printf("(bad fd)...\n");
