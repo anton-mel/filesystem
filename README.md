@@ -40,7 +40,7 @@ int flock(int fd, int op);
  */
 ```
 
-Calling convention is identical to Linux, so unmodified user programs that call `flock()` will compile and run.
+Calling convention is identical to Linux.
 
 ---
 
