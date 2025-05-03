@@ -97,7 +97,7 @@ void sched_update(void)
  * Atomically release lock and sleep on chan.
  * Reacquires lock when awakened.
  */
- void thread_sleep(void *chan, spinlock_t *lk)
+void thread_sleep(void *chan, spinlock_t *lk)
  {
      // TODO: your local variables here.
      unsigned int old_cur_pid;

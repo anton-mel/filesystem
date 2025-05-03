@@ -7,6 +7,8 @@ unsigned int get_curid(void);
 void set_pdir_base(unsigned int index);
 unsigned int thread_spawn(void *entry, unsigned int id,
                           unsigned int quota);
+void thread_wakeup(void *chan);
+void thread_sleep(void *chan, spinlock_t *lk);
 
 #endif  /* _KERN_ */
 
