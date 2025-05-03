@@ -10,13 +10,13 @@ Debug with gdb: make qemu-gdb / make qemu-nox-gdb
 3. brief description of what you have implemented
 4. and anything else you would like us to know -->
 
-# 🧪 Lab 5: File Systems
+# Lab 5: File Systems
 
 In this lab, we add the file system support to mCertiKOS. We have already implemented an IDE disk driver and some parts of the file system to stast with. We will extend the mCertiKOS scheduler with the ability to make threads sleep and wake threads up; this is necessary for the implementation of a more efficient file system. Then we are asked to implement various parts of the file system across multiple abstraction layers.
 
-## 👥 Team: Anton Melnychuk and Oliver Li
+## Team: Anton Melnychuk and Oliver Li
 
-### 📋 Workload Distribution
+### Workload Distribution
 
 | Name           | Tasks                                                          |
 |----------------|----------------------------------------------------------------|
@@ -31,7 +31,7 @@ In this lab, we add the file system support to mCertiKOS. We have already implem
 | Oliver Li      | - Part 3                                                       |
 | Oliver Li      | - Part 4                                                       |
 
-### 🛠️ How to Run
+### 🛠How to Run
 
 This assignment is organized into four parts, each located in a separate branch: `lab5part1`, `lab5part2`, `lab5part3`, and `lab5part4`. To view the implementation of a specific part, please switch to the corresponding branch.
 
