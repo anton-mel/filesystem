@@ -14,7 +14,7 @@ Debug with gdb: make qemu-gdb / make qemu-nox-gdb
 
 Team: Anton Melnychuk & Oliver Li
 
-If multiple user threads open one file, the inconsistency may occur due to the lack of mutual exclusion. One solution to avoid this issue is to provide the file lock. In Linux, the file lock is called flock, which provides the functions of applying or removing an advisory lock on an open file. The details of the flock can be found in its [manual page](https://man7.org/linux/man-pages/man2/flock.2.html). This project ports this **Linux‑style `flock(2)` advisory lock** to the simplified mCertiKOS kernel used in CPSC 422 (Operating Systems).
+If multiple user threads open one file, the inconsistency may occur due to the lack of mutual exclusion. One solution to avoid this issue is to provide the file lock. In Linux, the file lock is called flock, which provides the functions of applying or removing an advisory lock on an open file. The details of the flock can be found in its [manual page](https://man7.org/linux/man-pages/man2/flock.2.html). This project ports this **Linux‑style `flock(2)` advisory lock** to the simplified mCertiKOS kernel.
 
 ```
 man 2 flock
