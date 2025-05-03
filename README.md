@@ -67,7 +67,7 @@ Up‑/Downgrade is allowed but not atomic (mirrors Linux semantics).
 
 | case                                 | behaviour                                           |                                     |
 | ------------------------------------ | --------------------------------------------------- | ----------------------------------- |
-| \`LOCK\_EX                           | LOCK\_NB\` on busy lock                             | returns ‑EWOULDBLOCK (never sleeps) |
+|   LOCK\_EX                           | LOCK\_NB   on busy lock                             | returns ‑EWOULDBLOCK                |
 | multiple `LOCK_SH` holders           | all proceed until a writer queues                   |                                     |
 | queued writer then new reader        | reader waits → writer runs first (writer‑preferred) |                                     |
 | downgrade `EX → SH`                  | allowed; wakes queued readers                       |                                     |
