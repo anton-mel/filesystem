@@ -75,7 +75,7 @@ Up‑/Downgrade is allowed but not atomic (mirrors Linux semantics).
 | invalid op (both SH & EX or neither) | returns ‑1                                          |
 | close(fd) while locked               | implicit `LOCK_UN` just like Linux                  |
 
-Maximum simultaneous readers is limited only by thread count; no hardcoded buffer limits are imposed by the lock.
+Maximum simultaneous readers is limited only by thread count.
 
 ## 4. Flock Notes & Design Choices
 
