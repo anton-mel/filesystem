@@ -7,37 +7,54 @@
 
 #ifdef DEBUG_MSG
 #define KERN_DEBUG(...)                                \
-    do {                                               \
+    do                                                 \
+    {                                                  \
         debug_normal(__FILE__, __LINE__, __VA_ARGS__); \
     } while (0)
 
 #define KERN_WARN(...)                               \
-    do {                                             \
+    do                                               \
+    {                                                \
         debug_warn(__FILE__, __LINE__, __VA_ARGS__); \
     } while (0)
 
 #define KERN_PANIC(...)                               \
-    do {                                              \
+    do                                                \
+    {                                                 \
         debug_panic(__FILE__, __LINE__, __VA_ARGS__); \
     } while (0)
 
 #define KERN_ASSERT(x)                                       \
-    do {                                                     \
+    do                                                       \
+    {                                                        \
         if (!(x))                                            \
             KERN_PANIC("Kernel assertion failed: %s\n", #x); \
     } while (0)
-#else   /* !DEBUG_MSG */
-#define KERN_DEBUG(...) do {} while (0)
+#else /* !DEBUG_MSG */
+#define KERN_DEBUG(...) \
+    do                  \
+    {                   \
+    } while (0)
 
-#define KERN_WARN(...) do {} while (0)
+#define KERN_WARN(...) \
+    do                 \
+    {                  \
+    } while (0)
 
-#define KERN_PANIC(...) do {} while (0)
+#define KERN_PANIC(...) \
+    do                  \
+    {                   \
+    } while (0)
 
-#define KERN_ASSERT(c) do {} while (0)
-#endif  /* DEBUG_MSG */
+#define KERN_ASSERT(c) \
+    do                 \
+    {                  \
+    } while (0)
+#endif /* DEBUG_MSG */
 
 #define KERN_INFO(fmt, ...)             \
-    do {                                \
+    do                                  \
+    {                                   \
         debug_info(fmt, ##__VA_ARGS__); \
     } while (0)
 
@@ -56,10 +73,13 @@ void debug_panic(const char *file, int line, const char *fmt, ...);
 void debug_init(void);
 void debug_lock(void);
 void debug_unlock(void);
-#else   /* DEBUG_MSG */
-#define dprintf(...) do {} while (0)
-#endif  /* !DEBUG_MSG */
+#else /* DEBUG_MSG */
+#define dprintf(...) \
+    do               \
+    {                \
+    } while (0)
+#endif /* !DEBUG_MSG */
 
-#endif  /* _KERN_ */
+#endif /* _KERN_ */
 
-#endif  /* !_KERN_LIB_DEBUG_H_ */
+#endif /* !_KERN_LIB_DEBUG_H_ */
