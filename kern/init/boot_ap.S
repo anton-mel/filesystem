@@ -20,7 +20,7 @@ start_ap:
 
 	ljmp	$PROT_MODE_CSEG, $protcseg
 
-	.code32
+	.code16
 protcseg:
 	movw	$PROT_MODE_DSEG, %ax
 	movw	%ax, %ds
