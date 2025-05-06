@@ -4,7 +4,7 @@
 
 	.globl start_ap, end_ap
 start_ap:
-	.code16
+	.code32
 	cli
 	cld
 
@@ -13,7 +13,7 @@ start_ap:
 	movw	%ax, %es
 	movw	%ax, %ss
 
-	lgdt	gdtdesc
+	lgdt    gdtdesc32
 	movl	%cr0, %eax
 	orl	$CR0_PE_ON, %eax
 	movl	%eax, %cr0
@@ -56,3 +56,8 @@ gdt:
 gdtdesc:
 	.word 0x17	/* limit */
 	.long gdt	/* addr */
+
+/* GDT32 descriptor */
+gdtdesc32:
+    .word 0x17  /* limit */
+    .long gdt   /* addr */

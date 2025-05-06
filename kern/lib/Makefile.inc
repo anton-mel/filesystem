@@ -18,6 +18,7 @@ KERN_SRCFILES += $(KERN_DIR)/lib/reentrant_lock.c
 
 # Our new consumer-producer library
 KERN_SRCFILES += $(KERN_DIR)/lib/condvar.c
+KERN_SRCFILES += $(KERN_DIR)/lib/divdi3.c
 
 $(KERN_OBJDIR)/lib/%.o: $(KERN_DIR)/lib/%.c
 	@echo + cc[KERN/lib] $<

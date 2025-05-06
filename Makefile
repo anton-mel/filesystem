@@ -71,6 +71,7 @@ CSCOPE		:= cscope
 GDB		:= $(GCCPREFIX)gdb
 
 # others
+LDLIBS += $(GCC_LIB32)
 GCC_LIB32	:= $(shell $(CC) $(CFLAGS) -m32 -print-libgcc-file-name)
 ifeq ($(ARCH), amd64)
 GCC_LIB64	:= $(shell $(CC) $(CFLAGS) -m64 -print-libgcc-file-name)

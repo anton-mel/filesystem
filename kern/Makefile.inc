@@ -42,8 +42,13 @@ CCOMP_KERN_CFLAGS += $(KERN_DEBUG_FLAGS)
 CLIGHTGEN_FLAGS   += $(KERN_DEBUG_FLAGS)
 endif
 
+$(OBJDIR)/kern/%.o: $(KERN_DIR)/%.c
+	@echo + cc[KERN/$(notdir $(dir $<))] $<
+	@mkdir -p $(dir $@)
+	$(V)$(CC) $(KERN_CFLAGS) -c -o $@ $<
+
 # Object files of kernel
-KERN_SRCFILES	:= $(wildcard $(KERN_SRCFILES))
+KERN_SRCFILES 	:= $(shell find $(KERN_DIR) -name '*.c' -o -name '*.S')
 KERN_OBJFILES	:= $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES	:= $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
 
